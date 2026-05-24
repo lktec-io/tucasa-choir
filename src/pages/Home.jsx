@@ -196,7 +196,7 @@ export default function Home() {
               If you have any questions or need further assistance, feel free to reach out to us directly.
             </p>
             <a
-              href="https://wa.me/255674022265"
+              href="https://wa.me/+255 674 022 265"
               target="_blank"
               rel="noreferrer"
               className="whatsapp-btn"
