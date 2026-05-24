@@ -1,29 +1,39 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { FiArrowRight, FiHeadphones, FiBookOpen, FiUsers, FiMessageCircle } from 'react-icons/fi';
-import { BsWhatsapp, BsMusicNoteBeamed, BsMusicNote } from 'react-icons/bs';
-import { db } from '../../firebase/config';
-import HymnCard from '../../components/HymnCard';
-import SearchBar from '../../components/SearchBar';
-import { SkeletonCard } from '../../components/Loader';
-import EmptyState from '../../components/EmptyState';
-import '../styles/Home.css';
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
+import {
+  FiArrowRight,
+  FiHeadphones,
+  FiBookOpen,
+  FiUsers,
+  FiMessageCircle,
+} from "react-icons/fi";
+import { BsWhatsapp, BsMusicNoteBeamed, BsMusicNote } from "react-icons/bs";
+import { db } from "../../firebase/config";
+import HymnCard from "../../components/HymnCard";
+import SearchBar from "../../components/SearchBar";
+import { SkeletonCard } from "../../components/Loader";
+import EmptyState from "../../components/EmptyState";
+import "../styles/Home.css";
 
-const MUSIC_NOTES = ['♩', '♪', '♫', '♬', '𝄞', '♩', '♪', '♬'];
+const MUSIC_NOTES = ["♩", "♪", "♫", "♬", "𝄞", "♩", "♪", "♬"];
 
 function useHymns() {
   const [hymns, setHymns] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, 'hymns'), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, async (snap) => {
-      const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setHymns(list);
-      setLoading(false);
-    }, () => setLoading(false));
+    const q = query(collection(db, "hymns"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(
+      q,
+      async (snap) => {
+        const list = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        setHymns(list);
+        setLoading(false);
+      },
+      () => setLoading(false),
+    );
     return unsub;
   }, []);
 
@@ -32,11 +42,12 @@ function useHymns() {
 
 export default function Home() {
   const { hymns, loading } = useHymns();
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
 
-  const filtered = hymns.filter(h =>
-    h.title?.toLowerCase().includes(search.toLowerCase()) ||
-    h.description?.toLowerCase().includes(search.toLowerCase())
+  const filtered = hymns.filter(
+    (h) =>
+      h.title?.toLowerCase().includes(search.toLowerCase()) ||
+      h.description?.toLowerCase().includes(search.toLowerCase()),
   );
 
   const recent = hymns.slice(0, 6);
@@ -51,7 +62,9 @@ export default function Home() {
         {/* Floating notes */}
         <div className="floating-notes" aria-hidden="true">
           {MUSIC_NOTES.map((note, i) => (
-            <span key={i} className="floating-note">{note}</span>
+            <span key={i} className="floating-note">
+              {note}
+            </span>
           ))}
         </div>
 
@@ -67,7 +80,8 @@ export default function Home() {
             </h1>
 
             <p className="hero-subtitle">
-              The ultimate practice companion for sacred music. Explore our library and access professional guide tracks for every voice part.
+              The ultimate practice companion for sacred music. Explore our
+              library and access professional guide tracks for every voice part.
             </p>
 
             <div className="hero-actions">
@@ -101,19 +115,41 @@ export default function Home() {
               <p className="hero-visual-title">Voice Part Tracks</p>
               <div className="hero-visual-tracks">
                 {[
-                  { label: 'Soprano', color: 'linear-gradient(135deg,#ff6b9d,#c44b7d)', width: '90%' },
-                  { label: 'Alto', color: 'linear-gradient(135deg,#f5a623,#e07b10)', width: '75%' },
-                  { label: 'Tenor', color: 'linear-gradient(135deg,#4ecdc4,#2aa198)', width: '80%' },
-                  { label: 'Bass', color: 'linear-gradient(135deg,#4a90e2,#2d6ab4)', width: '65%' },
-                ].map(v => (
+                  {
+                    label: "Soprano",
+                    color: "linear-gradient(135deg,#ff6b9d,#c44b7d)",
+                    width: "90%",
+                  },
+                  {
+                    label: "Alto",
+                    color: "linear-gradient(135deg,#f5a623,#e07b10)",
+                    width: "75%",
+                  },
+                  {
+                    label: "Tenor",
+                    color: "linear-gradient(135deg,#4ecdc4,#2aa198)",
+                    width: "80%",
+                  },
+                  {
+                    label: "Bass",
+                    color: "linear-gradient(135deg,#4a90e2,#2d6ab4)",
+                    width: "65%",
+                  },
+                ].map((v) => (
                   <div key={v.label} className="hero-visual-track">
-                    <div className="hero-visual-track-icon" style={{ background: v.color }}>
+                    <div
+                      className="hero-visual-track-icon"
+                      style={{ background: v.color }}
+                    >
                       {v.label[0]}
                     </div>
                     <div className="hero-visual-track-info">
                       <div className="hero-visual-track-name">{v.label}</div>
                       <div className="hero-visual-track-bar">
-                        <div className="hero-visual-track-bar-fill" style={{ width: v.width }} />
+                        <div
+                          className="hero-visual-track-bar-fill"
+                          style={{ width: v.width }}
+                        />
                       </div>
                     </div>
                   </div>
@@ -134,11 +170,23 @@ export default function Home() {
             </div>
             <div className="recently-scroll">
               {recent.map((hymn, i) => (
-                <Link key={hymn.id} to={`/hymn/${hymn.id}`} className="recently-card">
-                  <div className="recently-card-num">{String(i + 1).padStart(2, '0')}</div>
+                <Link
+                  key={hymn.id}
+                  to={`/hymn/${hymn.id}`}
+                  className="recently-card"
+                >
+                  <div className="recently-card-num">
+                    {String(i + 1).padStart(2, "0")}
+                  </div>
                   <div className="recently-card-title">{hymn.title}</div>
                   <div className="recently-card-date">
-                    {hymn.createdAt?.toDate?.()?.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) || ''}
+                    {hymn.createdAt
+                      ?.toDate?.()
+                      ?.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      }) || ""}
                   </div>
                 </Link>
               ))}
@@ -154,27 +202,43 @@ export default function Home() {
             <p className="section-eyebrow">Hymn Library</p>
             <h2 className="section-title">Sacred Collection</h2>
             <p className="section-subtitle">
-              Browse our complete library of sacred hymns. Each comes with voice-part guide tracks and downloadable sheets.
+              Browse our complete library of sacred hymns. Each comes with
+              voice-part guide tracks and downloadable sheets.
             </p>
           </div>
 
           <div className="hymns-controls">
-            <SearchBar value={search} onChange={setSearch} placeholder="Search hymns by title or description..." />
+            <SearchBar
+              value={search}
+              onChange={setSearch}
+              placeholder="Search hymns by title or description..."
+            />
             <span className="hymns-count">
-              <span>{filtered.length}</span> hymn{filtered.length !== 1 ? 's' : ''} found
+              <span>{filtered.length}</span> hymn
+              {filtered.length !== 1 ? "s" : ""} found
             </span>
           </div>
 
           {loading ? (
             <div className="hymns-grid">
-              {[1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} />)}
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <SkeletonCard key={i} />
+              ))}
             </div>
           ) : filtered.length === 0 ? (
             <EmptyState
-              icon={search ? 'search' : 'music'}
-              title={search ? 'No hymns found' : 'No hymns yet'}
-              text={search ? `No results for "${search}". Try a different search.` : 'No hymns have been added to the library yet.'}
-              action={search ? { label: 'Clear search', onClick: () => setSearch('') } : null}
+              icon={search ? "search" : "music"}
+              title={search ? "No hymns found" : "No hymns yet"}
+              text={
+                search
+                  ? `No results for "${search}". Try a different search.`
+                  : "No hymns have been added to the library yet."
+              }
+              action={
+                search
+                  ? { label: "Clear search", onClick: () => setSearch("") }
+                  : null
+              }
             />
           ) : (
             <div className="hymns-grid">
@@ -190,13 +254,19 @@ export default function Home() {
       <section className="support-section" id="support">
         <div className="container">
           <div className="support-card">
-            <div className="section-eyebrow" style={{ marginBottom: 'var(--space-md)' }}>Get Help</div>
+            <div
+              className="section-eyebrow"
+              style={{ marginBottom: "var(--space-md)" }}
+            >
+              Get Help
+            </div>
             <h2 className="support-title">Need Help?</h2>
             <p className="support-text">
-              If you have any questions or need further assistance, feel free to reach out to us directly.
+              If you have any questions or need further assistance, feel free to
+              reach out to us directly.
             </p>
             <a
-              href="https://wa.me/255674022265"
+              href="https://api.whatsapp.com/send?phone=255674022265"
               target="_blank"
               rel="noreferrer"
               className="whatsapp-btn"
@@ -206,7 +276,10 @@ export default function Home() {
             </a>
 
             <p className="note-text">
-              <strong>Note:</strong> These audio tracks are provided for learning purposes. Users are encouraged to download them for offline practice. If you find any issues with the audio quality, please contact our support team.
+              <strong>Note:</strong> These audio tracks are provided for
+              learning purposes. Users are encouraged to download them for
+              offline practice. If you find any issues with the audio quality,
+              please contact our support team.
             </p>
           </div>
         </div>
