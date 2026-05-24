@@ -201,7 +201,7 @@ export default function Home() {
               rel="noreferrer"
               className="whatsapp-btn"
             >
-              <BsWhatsapp className="whatsapp-icon" />
+              <BsWhatsapp className="whatsapp-icon"/>
               Chat on WhatsApp
             </a>
 
