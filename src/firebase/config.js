@@ -4,12 +4,12 @@ import { getStorage } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCs3M2RIeJvKzIxch8S0gMA4k6YZmjUEz4",
-  authDomain: "tucasa-hyms.firebaseapp.com",
-  projectId: "tucasa-hyms",
-  storageBucket: "tucasa-hyms.firebasestorage.app",
-  messagingSenderId: "490011433212",
-  appId: "1:490011433212:web:f8cf715ac679a869d95f79"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);
