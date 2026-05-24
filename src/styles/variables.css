@@ -1,0 +1,94 @@
+:root {
+  /* Sacred Green Palette */
+  --color-primary: #1a4a2e;
+  --color-primary-light: #2d6e47;
+  --color-primary-dark: #0f2d1c;
+  --color-accent: #4caf7d;
+  --color-accent-light: #6fcf97;
+  --color-accent-glow: rgba(76, 175, 125, 0.3);
+
+  /* Neutrals */
+  --color-bg: #0a1a10;
+  --color-bg-secondary: #0f2218;
+  --color-bg-card: rgba(255, 255, 255, 0.04);
+  --color-bg-card-hover: rgba(255, 255, 255, 0.08);
+  --color-surface: rgba(26, 74, 46, 0.2);
+  --color-surface-strong: rgba(26, 74, 46, 0.4);
+
+  /* Text */
+  --color-text: #e8f5ee;
+  --color-text-muted: #8ab99a;
+  --color-text-dim: #5a8a6a;
+  --color-text-white: #ffffff;
+
+  /* Glass */
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-blur: blur(16px);
+
+  /* Gradients */
+  --gradient-hero: linear-gradient(135deg, #0a1a10 0%, #1a4a2e 50%, #0f2d1c 100%);
+  --gradient-accent: linear-gradient(135deg, #2d6e47 0%, #4caf7d 100%);
+  --gradient-card: linear-gradient(135deg, rgba(26,74,46,0.3) 0%, rgba(15,45,28,0.5) 100%);
+  --gradient-overlay: linear-gradient(180deg, rgba(10,26,16,0.6) 0%, rgba(10,26,16,0.95) 100%);
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.5);
+  --shadow-glow: 0 0 30px rgba(76, 175, 125, 0.2);
+  --shadow-glow-strong: 0 0 50px rgba(76, 175, 125, 0.35);
+
+  /* Borders */
+  --border-radius-sm: 8px;
+  --border-radius-md: 14px;
+  --border-radius-lg: 20px;
+  --border-radius-xl: 28px;
+  --border-radius-full: 9999px;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --space-2xl: 64px;
+  --space-3xl: 96px;
+
+  /* Typography */
+  --font-main: 'Poppins', 'Segoe UI', system-ui, sans-serif;
+  --font-display: 'Poppins', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.25s ease;
+  --transition-slow: 0.4s ease;
+  --transition-spring: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Z-index layers */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal: 300;
+  --z-toast: 400;
+}
+
+/* Light mode (optional override) */
+[data-theme="light"] {
+  --color-bg: #f0f7f2;
+  --color-bg-secondary: #e0efe5;
+  --color-bg-card: rgba(255, 255, 255, 0.8);
+  --color-bg-card-hover: rgba(255, 255, 255, 0.95);
+  --color-surface: rgba(26, 74, 46, 0.08);
+  --color-surface-strong: rgba(26, 74, 46, 0.15);
+  --color-text: #1a3a25;
+  --color-text-muted: #4a7a5a;
+  --color-text-dim: #6a9a7a;
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(26, 74, 46, 0.2);
+  --gradient-hero: linear-gradient(135deg, #e8f5ee 0%, #c8e8d4 50%, #d4f0dc 100%);
+  --gradient-overlay: linear-gradient(180deg, rgba(240,247,242,0.7) 0%, rgba(240,247,242,0.97) 100%);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.1);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.15);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.2);
+}
