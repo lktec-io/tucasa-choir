@@ -4,11 +4,11 @@ import { motion } from 'framer-motion';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { FiArrowRight, FiHeadphones, FiBookOpen, FiUsers, FiMessageCircle } from 'react-icons/fi';
 import { BsWhatsapp, BsMusicNoteBeamed, BsMusicNote } from 'react-icons/bs';
-import { db } from '../firebase/config';
-import HymnCard from '../components/HymnCard';
-import SearchBar from '../components/SearchBar';
-import { SkeletonCard } from '../components/Loader';
-import EmptyState from '../components/EmptyState';
+import { db } from '../../firebase/config';
+import HymnCard from '../../components/HymnCard';
+import SearchBar from '../../components/SearchBar';
+import { SkeletonCard } from '../../components/Loader';
+import EmptyState from '../../components/EmptyState';
 import '../styles/Home.css';
 
 const MUSIC_NOTES = ['♩', '♪', '♫', '♬', '𝄞', '♩', '♪', '♬'];
@@ -196,7 +196,7 @@ export default function Home() {
               If you have any questions or need further assistance, feel free to reach out to us directly.
             </p>
             <a
-              href="https://wa.me/255000000000"
+              href="https://wa.me/255674022265"
               target="_blank"
               rel="noreferrer"
               className="whatsapp-btn"
