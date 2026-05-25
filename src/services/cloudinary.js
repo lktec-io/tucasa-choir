@@ -45,7 +45,8 @@ async function uploadToCloudinary(file, onProgress) {
   formData.append('upload_preset', UPLOAD_PRESET);
 
   const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`;
-
+console.log(import.meta.env.VITE_CLOUDINARY_CLOUD_NAME);
+console.log(import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
   const response = await axios.post(url, formData, {
     onUploadProgress: (event) => {
       if (event.total && onProgress) {
