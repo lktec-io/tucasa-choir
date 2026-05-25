@@ -1,28 +1,109 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  signInWithEmailAndPassword, signOut, onAuthStateChanged
-} from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import {
   collection, addDoc, updateDoc, deleteDoc, doc,
   serverTimestamp, onSnapshot, query, orderBy, where, getDocs
 } from 'firebase/firestore';
+import { auth, db } from '../firebase/config';
 import {
-  ref, uploadBytesResumable, getDownloadURL, deleteObject
-} from 'firebase/storage';
-import { auth, db, storage } from '../firebase/config';
+  uploadAudio, uploadPDF,
+  validateAudioFile, validatePDFFile, formatFileSize
+} from '../services/cloudinary';
 import { toast } from 'react-hot-toast';
 import {
-  FiMail, FiLock, FiLogOut, FiMenu, FiX,
-  FiHome, FiPlus, FiList, FiSettings, FiMusic,
-  FiUpload, FiTrash2, FiEdit3, FiEye, FiDownload,
-  FiHeadphones, FiUsers, FiBookOpen
+  FiMail, FiLock, FiLogOut, FiMenu, FiX, FiHome, FiPlus,
+  FiList, FiSettings, FiMusic, FiUpload, FiTrash2, FiEdit3,
+  FiEye, FiHeadphones, FiUsers, FiBookOpen, FiAlertCircle,
+  FiChevronRight
 } from 'react-icons/fi';
 import { BsFilePdf } from 'react-icons/bs';
 import '../styles/Admin.css';
 
-/* ---------- Auth Form ---------- */
-function AuthForm({ onLogin }) {
+/* ─── Helpers ────────────────────────────────────────────────────── */
+function getVoiceColor(title = '') {
+  const t = title.toLowerCase();
+  if (t.includes('soprano')) return 'linear-gradient(135deg,#ff6b9d,#c44b7d)';
+  if (t.includes('alto'))    return 'linear-gradient(135deg,#f5a623,#e07b10)';
+  if (t.includes('tenor'))   return 'linear-gradient(135deg,#4ecdc4,#2aa198)';
+  if (t.includes('bass'))    return 'linear-gradient(135deg,#4a90e2,#2d6ab4)';
+  return 'var(--gradient-accent)';
+}
+
+/* ─── FileDropZone ───────────────────────────────────────────────── */
+function FileDropZone({ accept, onFile, file, onClear, Icon, label, hint }) {
+  const [dragging, setDragging] = useState(false);
+  const inputRef = useRef(null);
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragging(false);
+    const f = e.dataTransfer.files[0];
+    if (f) onFile(f);
+  };
+
+  return (
+    <div
+      className={`file-drop-zone${dragging ? ' dragging' : ''}${file ? ' has-file' : ''}`}
+      onDragOver={e => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={handleDrop}
+      onClick={() => !file && inputRef.current?.click()}
+      role="button"
+      tabIndex={file ? -1 : 0}
+      onKeyDown={e => e.key === 'Enter' && !file && inputRef.current?.click()}
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        style={{ display: 'none' }}
+        onChange={e => { if (e.target.files[0]) onFile(e.target.files[0]); e.target.value = ''; }}
+      />
+      {file ? (
+        <div className="file-drop-selected">
+          <div className="file-drop-file-icon"><Icon /></div>
+          <div className="file-drop-file-meta">
+            <span className="file-drop-file-name">{file.name}</span>
+            <span className="file-drop-file-size">{formatFileSize(file.size)}</span>
+          </div>
+          <button
+            className="file-drop-clear"
+            onClick={e => { e.stopPropagation(); onClear(); }}
+            title="Remove file"
+            type="button"
+          >
+            <FiX />
+          </button>
+        </div>
+      ) : (
+        <div className="file-drop-empty">
+          <div className="file-drop-empty-icon"><Icon /></div>
+          <p className="file-drop-empty-label">{label}</p>
+          <p className="file-drop-empty-hint">{hint}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Upload Progress ────────────────────────────────────────────── */
+function UploadProgress({ progress, label }) {
+  return (
+    <div className="upload-progress-wrap">
+      <div className="upload-progress-header">
+        <span className="upload-progress-label">{label}</span>
+        <span className="upload-progress-pct">{Math.round(progress)}%</span>
+      </div>
+      <div className="progress-bar-track">
+        <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Auth Form ──────────────────────────────────────────────────── */
+function AuthForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,8 +115,7 @@ function AuthForm({ onLogin }) {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      onLogin();
-    } catch (err) {
+    } catch {
       setError('Invalid credentials. Please try again.');
     } finally {
       setLoading(false);
@@ -46,14 +126,16 @@ function AuthForm({ onLogin }) {
     <div className="admin-auth-page">
       <motion.div
         className="admin-auth-card"
-        initial={{ opacity: 0, scale: 0.94 }}
-        animate={{ opacity: 1, scale: 1 }}
+        initial={{ opacity: 0, scale: 0.94, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.35 }}
       >
         <div className="admin-auth-logo">
           <div className="admin-auth-logo-icon"><FiMusic /></div>
-          <h2 className="admin-auth-title">Admin Access</h2>
-          <p className="admin-auth-subtitle">TUCASA TIA Choir — Secure Dashboard</p>
+          <div>
+            <h2 className="admin-auth-title">Admin Access</h2>
+            <p className="admin-auth-subtitle">TUCASA TIA Choir — Secure Dashboard</p>
+          </div>
         </div>
 
         <form className="admin-form" onSubmit={handleSubmit}>
@@ -89,10 +171,17 @@ function AuthForm({ onLogin }) {
             </div>
           </div>
 
-          {error && <div className="form-error">{error}</div>}
+          {error && (
+            <div className="form-error">
+              <FiAlertCircle /> {error}
+            </div>
+          )}
 
           <button type="submit" className="form-submit-btn" disabled={loading}>
-            {loading ? 'Authenticating...' : 'Access Dashboard'}
+            {loading
+              ? <><span className="btn-spinner" /> Authenticating...</>
+              : <>Access Dashboard <FiChevronRight /></>
+            }
           </button>
         </form>
       </motion.div>
@@ -100,32 +189,19 @@ function AuthForm({ onLogin }) {
   );
 }
 
-/* ---------- Upload Progress Bar ---------- */
-function UploadProgress({ progress, label }) {
-  return (
-    <div className="upload-progress">
-      <div className="upload-progress-label">
-        <span>{label}</span>
-        <span>{Math.round(progress)}%</span>
-      </div>
-      <div className="progress-bar-track">
-        <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
-      </div>
-    </div>
-  );
-}
-
-/* ---------- Manage Hymn Modal ---------- */
+/* ─── Manage Hymn Modal ──────────────────────────────────────────── */
 function ManageHymnModal({ hymn, onClose }) {
   const [trackTitle, setTrackTitle] = useState('');
   const [audioFile, setAudioFile] = useState(null);
   const [pdfFile, setPdfFile] = useState(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [pdfProgress, setPdfProgress] = useState(0);
-  const [uploading, setUploading] = useState(false);
-  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [audioProgress, setAudioProgress] = useState(0);
+  const [pdfProgress, setPdfProgress]   = useState(0);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
+  const [uploadingPdf, setUploadingPdf]     = useState(false);
   const [tracks, setTracks] = useState([]);
   const [deletingTrack, setDeletingTrack] = useState(null);
+  const [audioError, setAudioError] = useState('');
+  const [pdfError, setPdfError] = useState('');
 
   useEffect(() => {
     const q = query(
@@ -133,83 +209,71 @@ function ManageHymnModal({ hymn, onClose }) {
       where('hymnId', '==', hymn.id),
       orderBy('createdAt', 'asc')
     );
-    const unsub = onSnapshot(q, snap => {
+    return onSnapshot(q, snap => {
       setTracks(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
-    return unsub;
   }, [hymn.id]);
 
-  const uploadAudio = async () => {
-    if (!audioFile || !trackTitle.trim()) {
-      toast.error('Please enter a track title and choose an audio file.');
-      return;
-    }
-    setUploading(true);
+  const handleAudioFileSelect = (file) => {
+    const err = validateAudioFile(file);
+    if (err) { toast.error(err); return; }
+    setAudioError(''); setAudioFile(file);
+  };
+
+  const handlePdfFileSelect = (file) => {
+    const err = validatePDFFile(file);
+    if (err) { toast.error(err); return; }
+    setPdfError(''); setPdfFile(file);
+  };
+
+  const handleUploadAudio = async () => {
+    if (!trackTitle.trim()) { setAudioError('Track title is required.'); return; }
+    const err = validateAudioFile(audioFile);
+    if (err) { setAudioError(err); return; }
+    setAudioError('');
+    setUploadingAudio(true);
+    setAudioProgress(0);
     try {
-      const storageRef = ref(storage, `audio/${hymn.id}/${Date.now()}_${audioFile.name}`);
-      const task = uploadBytesResumable(storageRef, audioFile);
-      task.on('state_changed',
-        snap => setUploadProgress((snap.bytesTransferred / snap.totalBytes) * 100),
-        err => { toast.error('Upload failed: ' + err.message); setUploading(false); },
-        async () => {
-          const audioUrl = await getDownloadURL(task.snapshot.ref);
-          await addDoc(collection(db, 'audioTracks'), {
-            hymnId: hymn.id,
-            title: trackTitle.trim(),
-            audioUrl,
-            storagePath: storageRef.fullPath,
-            createdAt: serverTimestamp(),
-          });
-          // update hymn trackCount
-          const hymnRef = doc(db, 'hymns', hymn.id);
-          await updateDoc(hymnRef, { trackCount: tracks.length + 1 });
-          toast.success('Track uploaded!');
-          setTrackTitle('');
-          setAudioFile(null);
-          setUploadProgress(0);
-          setUploading(false);
-        }
-      );
+      const audioUrl = await uploadAudio(audioFile, setAudioProgress);
+      await addDoc(collection(db, 'audioTracks'), {
+        hymnId: hymn.id,
+        title: trackTitle.trim(),
+        audioUrl,
+        createdAt: serverTimestamp(),
+      });
+      await updateDoc(doc(db, 'hymns', hymn.id), { trackCount: tracks.length + 1 });
+      setAudioProgress(100);
+      toast.success('Track uploaded!');
+      setTrackTitle(''); setAudioFile(null); setAudioProgress(0);
     } catch (err) {
-      toast.error('Upload failed.');
-      setUploading(false);
+      toast.error(err.message || 'Audio upload failed.');
+    } finally {
+      setUploadingAudio(false);
     }
   };
 
-  const uploadPdf = async () => {
-    if (!pdfFile) { toast.error('Please choose a PDF file.'); return; }
-    setUploadingPdf(true);
+  const handleUploadPdf = async () => {
+    const err = validatePDFFile(pdfFile);
+    if (err) { setPdfError(err); return; }
+    setPdfError('');
+    setUploadingPdf(true); setPdfProgress(0);
     try {
-      const storageRef = ref(storage, `pdfs/${hymn.id}/${Date.now()}_${pdfFile.name}`);
-      const task = uploadBytesResumable(storageRef, pdfFile);
-      task.on('state_changed',
-        snap => setPdfProgress((snap.bytesTransferred / snap.totalBytes) * 100),
-        err => { toast.error('PDF upload failed: ' + err.message); setUploadingPdf(false); },
-        async () => {
-          const pdfUrl = await getDownloadURL(task.snapshot.ref);
-          await updateDoc(doc(db, 'hymns', hymn.id), {
-            pdfUrl,
-            pdfStoragePath: storageRef.fullPath,
-          });
-          toast.success('PDF uploaded!');
-          setPdfFile(null);
-          setPdfProgress(0);
-          setUploadingPdf(false);
-        }
-      );
+      const pdfUrl = await uploadPDF(pdfFile, setPdfProgress);
+      await updateDoc(doc(db, 'hymns', hymn.id), { pdfUrl });
+      setPdfProgress(100);
+      toast.success('PDF uploaded!');
+      setPdfFile(null); setPdfProgress(0);
     } catch (err) {
-      toast.error('PDF upload failed.');
+      toast.error(err.message || 'PDF upload failed.');
+    } finally {
       setUploadingPdf(false);
     }
   };
 
-  const deleteTrack = async (track) => {
+  const handleDeleteTrack = async (track) => {
     if (!window.confirm(`Delete "${track.title}"?`)) return;
     setDeletingTrack(track.id);
     try {
-      if (track.storagePath) {
-        await deleteObject(ref(storage, track.storagePath)).catch(() => {});
-      }
       await deleteDoc(doc(db, 'audioTracks', track.id));
       await updateDoc(doc(db, 'hymns', hymn.id), { trackCount: Math.max(0, tracks.length - 1) });
       toast.success('Track deleted.');
@@ -220,158 +284,165 @@ function ManageHymnModal({ hymn, onClose }) {
     }
   };
 
-  function getVoiceColor(title = '') {
-    const t = title.toLowerCase();
-    if (t.includes('soprano')) return 'linear-gradient(135deg,#ff6b9d,#c44b7d)';
-    if (t.includes('alto')) return 'linear-gradient(135deg,#f5a623,#e07b10)';
-    if (t.includes('tenor')) return 'linear-gradient(135deg,#4ecdc4,#2aa198)';
-    if (t.includes('bass')) return 'linear-gradient(135deg,#4a90e2,#2d6ab4)';
-    return 'var(--gradient-accent)';
-  }
-
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <motion.div
         className="modal-box"
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ duration: 0.25 }}
       >
-        <button className="modal-close-btn" onClick={onClose}><FiX /></button>
-
-        <h2 className="modal-title">{hymn.title}</h2>
-        <p className="modal-subtitle">Manage audio tracks and sheet music</p>
-
-        {/* Upload PDF */}
-        <div style={{ marginBottom: 'var(--space-xl)' }}>
-          <p className="section-label" style={{ marginBottom: 'var(--space-md)' }}>Sheet Music (PDF)</p>
-          <div className="file-upload-area">
-            <input
-              type="file"
-              accept=".pdf"
-              className="file-upload-input"
-              onChange={e => setPdfFile(e.target.files[0])}
-            />
-            <div className="file-upload-icon"><BsFilePdf /></div>
-            <p className="file-upload-text">Click to choose PDF file</p>
-            <p className="file-upload-hint">PDF files only</p>
-            {pdfFile && (
-              <div className="file-selected-name">
-                <BsFilePdf /> {pdfFile.name}
-              </div>
-            )}
+        <div className="modal-header">
+          <div className="modal-header-text">
+            <h2 className="modal-title">{hymn.title}</h2>
+            <p className="modal-subtitle">Upload tracks and sheet music</p>
           </div>
-          {uploadingPdf && <UploadProgress progress={pdfProgress} label="Uploading PDF..." />}
-          <button
-            className="admin-action-btn primary"
-            style={{ marginTop: 'var(--space-md)', width: '100%', justifyContent: 'center', padding: '11px' }}
-            onClick={uploadPdf}
-            disabled={uploadingPdf || !pdfFile}
-          >
-            <FiUpload /> {uploadingPdf ? 'Uploading...' : 'Upload PDF'}
-          </button>
+          <button className="modal-close-btn" onClick={onClose} type="button"><FiX /></button>
         </div>
 
-        {/* Upload Audio Track */}
-        <div style={{ marginBottom: 'var(--space-xl)' }}>
-          <p className="section-label" style={{ marginBottom: 'var(--space-md)' }}>Add Voice Track</p>
-          <div className="form-group" style={{ marginBottom: 'var(--space-md)' }}>
-            <label className="form-label">Track Title (e.g., Soprano, Alto, Tenor, Bass)</label>
-            <div className="form-input-wrap">
-              <FiMusic className="form-input-icon" />
-              <input
-                type="text"
-                className="form-input"
-                placeholder="e.g., Soprano Part"
-                value={trackTitle}
-                onChange={e => setTrackTitle(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="file-upload-area">
-            <input
-              type="file"
-              accept="audio/*"
-              className="file-upload-input"
-              onChange={e => setAudioFile(e.target.files[0])}
+        <div className="modal-body">
+          {/* PDF Upload */}
+          <div className="modal-section">
+            <p className="modal-section-label"><BsFilePdf /> Sheet Music (PDF)</p>
+            <FileDropZone
+              accept=".pdf,application/pdf"
+              onFile={handlePdfFileSelect}
+              file={pdfFile}
+              onClear={() => setPdfFile(null)}
+              Icon={BsFilePdf}
+              label="Drop PDF here or click to browse"
+              hint="PDF only · max 15 MB"
             />
-            <div className="file-upload-icon"><FiHeadphones /></div>
-            <p className="file-upload-text">Click to choose audio file</p>
-            <p className="file-upload-hint">MP3, WAV, M4A, OGG supported</p>
-            {audioFile && (
-              <div className="file-selected-name">
-                <FiMusic /> {audioFile.name}
-              </div>
-            )}
+            {pdfError && <p className="field-error"><FiAlertCircle /> {pdfError}</p>}
+            {uploadingPdf && <UploadProgress progress={pdfProgress} label="Uploading PDF..." />}
+            <button
+              type="button"
+              className={`upload-submit-btn${uploadingPdf || !pdfFile ? ' disabled' : ''}`}
+              onClick={handleUploadPdf}
+              disabled={uploadingPdf || !pdfFile}
+            >
+              {uploadingPdf
+                ? <><span className="btn-spinner" /> Uploading...</>
+                : <><FiUpload /> Upload PDF</>
+              }
+            </button>
           </div>
-          {uploading && <UploadProgress progress={uploadProgress} label="Uploading audio..." />}
-          <button
-            className="admin-action-btn primary"
-            style={{ marginTop: 'var(--space-md)', width: '100%', justifyContent: 'center', padding: '11px' }}
-            onClick={uploadAudio}
-            disabled={uploading || !audioFile || !trackTitle.trim()}
-          >
-            <FiUpload /> {uploading ? 'Uploading...' : 'Upload Track'}
-          </button>
-        </div>
 
-        {/* Existing Tracks */}
-        {tracks.length > 0 && (
-          <div>
-            <p className="section-label" style={{ marginBottom: 'var(--space-md)' }}>Uploaded Tracks ({tracks.length})</p>
-            <div className="admin-tracks-list">
-              {tracks.map(track => (
-                <div key={track.id} className="admin-track-item">
-                  <div className="admin-track-icon" style={{ background: getVoiceColor(track.title) }}>
-                    <FiMusic />
-                  </div>
-                  <div className="admin-track-info">
-                    <div className="admin-track-title">{track.title}</div>
-                    <div className="admin-track-meta">Audio track</div>
-                  </div>
-                  <a href={track.audioUrl} target="_blank" rel="noreferrer" className="admin-action-btn edit" style={{ textDecoration: 'none' }}>
-                    <FiEye />
-                  </a>
-                  <button
-                    className="admin-action-btn delete"
-                    onClick={() => deleteTrack(track)}
-                    disabled={deletingTrack === track.id}
-                  >
-                    {deletingTrack === track.id ? '...' : <FiTrash2 />}
-                  </button>
-                </div>
-              ))}
+          {/* Audio Track Upload */}
+          <div className="modal-section">
+            <p className="modal-section-label"><FiHeadphones /> Add Voice Track</p>
+            <div className="form-group">
+              <label className="form-label">Track Title *</label>
+              <div className="form-input-wrap">
+                <FiMusic className="form-input-icon" />
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="e.g. Soprano, Alto, Tenor, Bass"
+                  value={trackTitle}
+                  onChange={e => setTrackTitle(e.target.value)}
+                />
+              </div>
             </div>
+            <FileDropZone
+              accept=".mp3,.wav,.m4a,audio/*"
+              onFile={handleAudioFileSelect}
+              file={audioFile}
+              onClear={() => setAudioFile(null)}
+              Icon={FiHeadphones}
+              label="Drop audio file here or click to browse"
+              hint="MP3, WAV, M4A · max 50 MB"
+            />
+            {audioError && <p className="field-error"><FiAlertCircle /> {audioError}</p>}
+            {uploadingAudio && <UploadProgress progress={audioProgress} label="Uploading audio..." />}
+            <button
+              type="button"
+              className={`upload-submit-btn${uploadingAudio || !audioFile || !trackTitle.trim() ? ' disabled' : ''}`}
+              onClick={handleUploadAudio}
+              disabled={uploadingAudio || !audioFile || !trackTitle.trim()}
+            >
+              {uploadingAudio
+                ? <><span className="btn-spinner" /> Uploading...</>
+                : <><FiUpload /> Upload Track</>
+              }
+            </button>
           </div>
-        )}
+
+          {/* Existing Tracks */}
+          {tracks.length > 0 && (
+            <div className="modal-section">
+              <p className="modal-section-label"><FiList /> Uploaded Tracks ({tracks.length})</p>
+              <div className="admin-tracks-list">
+                {tracks.map(track => (
+                  <div key={track.id} className="admin-track-item">
+                    <div className="admin-track-icon" style={{ background: getVoiceColor(track.title) }}>
+                      <FiMusic />
+                    </div>
+                    <div className="admin-track-info">
+                      <div className="admin-track-title">{track.title}</div>
+                      <div className="admin-track-meta">Audio track</div>
+                    </div>
+                    <div className="admin-track-actions">
+                      <a
+                        href={track.audioUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="admin-action-btn edit icon-only"
+                        title="Preview"
+                      >
+                        <FiEye />
+                      </a>
+                      <button
+                        type="button"
+                        className="admin-action-btn delete icon-only"
+                        onClick={() => handleDeleteTrack(track)}
+                        disabled={deletingTrack === track.id}
+                        title="Delete"
+                      >
+                        {deletingTrack === track.id ? <span className="btn-spinner" /> : <FiTrash2 />}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </motion.div>
     </div>
   );
 }
 
-/* ---------- Dashboard View ---------- */
+/* ─── Dashboard View ─────────────────────────────────────────────── */
 function DashboardView({ hymns }) {
   const totalTracks = hymns.reduce((s, h) => s + (h.trackCount || 0), 0);
   const withPdf = hymns.filter(h => h.pdfUrl).length;
 
+  const stats = [
+    { icon: <FiBookOpen />, color: 'green',  num: hymns.length, label: 'Total Hymns' },
+    { icon: <FiHeadphones />, color: 'blue', num: totalTracks,  label: 'Audio Tracks' },
+    { icon: <BsFilePdf />,   color: 'orange',num: withPdf,      label: 'With PDF' },
+    { icon: <FiUsers />,     color: 'red',   num: 4,            label: 'Voice Parts' },
+  ];
+
   return (
-    <div>
+    <>
       <div className="admin-stats-grid">
-        {[
-          { icon: <FiBookOpen />, color: 'green', num: hymns.length, label: 'Total Hymns' },
-          { icon: <FiHeadphones />, color: 'blue', num: totalTracks, label: 'Audio Tracks' },
-          { icon: <BsFilePdf />, color: 'orange', num: withPdf, label: 'With PDF' },
-          { icon: <FiUsers />, color: 'red', num: 4, label: 'Voice Parts' },
-        ].map((s, i) => (
-          <div key={i} className="admin-stat-card" style={{ animationDelay: `${i * 0.05}s` }}>
+        {stats.map((s, i) => (
+          <motion.div
+            key={i}
+            className="admin-stat-card"
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.07 }}
+          >
             <div className={`admin-stat-icon ${s.color}`}>{s.icon}</div>
             <div className="admin-stat-info">
               <div className="admin-stat-num">{s.num}</div>
               <div className="admin-stat-label">{s.label}</div>
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
 
@@ -381,17 +452,20 @@ function DashboardView({ hymns }) {
         </div>
         <div className="admin-panel-body">
           {hymns.length === 0 ? (
-            <p style={{ color: 'var(--color-text-dim)', fontSize: '0.9rem' }}>No hymns yet. Add your first hymn!</p>
+            <div className="admin-empty-state">
+              <FiMusic />
+              <p>No hymns yet. Use "Add Hymn" to get started.</p>
+            </div>
           ) : (
             <div className="admin-hymns-list">
-              {hymns.slice(0, 5).map(h => (
+              {hymns.slice(0, 6).map(h => (
                 <div key={h.id} className="admin-hymn-item">
                   <div className="admin-hymn-item-icon"><FiMusic /></div>
                   <div className="admin-hymn-item-info">
                     <div className="admin-hymn-item-title">{h.title}</div>
                     <div className="admin-hymn-item-meta">
-                      <span>{h.trackCount || 0} tracks</span>
-                      {h.pdfUrl && <span>PDF available</span>}
+                      <span>{h.trackCount || 0} track{h.trackCount !== 1 ? 's' : ''}</span>
+                      {h.pdfUrl && <span className="badge-pdf">PDF</span>}
                     </div>
                   </div>
                 </div>
@@ -400,11 +474,11 @@ function DashboardView({ hymns }) {
           )}
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
-/* ---------- Add Hymn View ---------- */
+/* ─── Add Hymn View ──────────────────────────────────────────────── */
 function AddHymnView({ onAdded }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -422,11 +496,10 @@ function AddHymnView({ onAdded }) {
         trackCount: 0,
         createdAt: serverTimestamp(),
       });
-      toast.success('Hymn created successfully!');
-      setTitle('');
-      setDescription('');
+      toast.success('Hymn created!');
+      setTitle(''); setDescription('');
       onAdded(docRef.id);
-    } catch (err) {
+    } catch {
       toast.error('Failed to create hymn.');
     } finally {
       setSaving(false);
@@ -454,7 +527,6 @@ function AddHymnView({ onAdded }) {
               />
             </div>
           </div>
-
           <div className="form-group">
             <label className="form-label">Description</label>
             <textarea
@@ -465,9 +537,12 @@ function AddHymnView({ onAdded }) {
               rows={3}
             />
           </div>
-
-          <button type="submit" className="admin-action-btn primary" style={{ alignSelf: 'flex-start', padding: '12px 24px' }} disabled={saving}>
-            <FiPlus /> {saving ? 'Creating...' : 'Create Hymn'}
+          <button
+            type="submit"
+            className={`admin-action-btn primary create-btn${saving ? ' disabled' : ''}`}
+            disabled={saving}
+          >
+            {saving ? <><span className="btn-spinner" /> Creating...</> : <><FiPlus /> Create Hymn</>}
           </button>
         </form>
       </div>
@@ -475,17 +550,17 @@ function AddHymnView({ onAdded }) {
   );
 }
 
-/* ---------- Manage Hymns View ---------- */
+/* ─── Manage Hymns View ──────────────────────────────────────────── */
 function ManageHymnsView({ hymns }) {
   const [managingHymn, setManagingHymn] = useState(null);
-  const [editingHymn, setEditingHymn] = useState(null);
+  const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(null);
 
   const startEdit = (hymn) => {
-    setEditingHymn(hymn.id);
+    setEditingId(hymn.id);
     setEditTitle(hymn.title);
     setEditDesc(hymn.description || '');
   };
@@ -494,12 +569,12 @@ function ManageHymnsView({ hymns }) {
     if (!editTitle.trim()) return;
     setSaving(true);
     try {
-      await updateDoc(doc(db, 'hymns', editingHymn), {
+      await updateDoc(doc(db, 'hymns', editingId), {
         title: editTitle.trim(),
         description: editDesc.trim(),
       });
       toast.success('Hymn updated!');
-      setEditingHymn(null);
+      setEditingId(null);
     } catch {
       toast.error('Update failed.');
     } finally {
@@ -508,18 +583,12 @@ function ManageHymnsView({ hymns }) {
   };
 
   const deleteHymn = async (hymn) => {
-    if (!window.confirm(`Delete "${hymn.title}"? This will also delete all tracks.`)) return;
+    if (!window.confirm(`Delete "${hymn.title}"? This removes all its tracks too.`)) return;
     setDeleting(hymn.id);
     try {
-      // delete all tracks first
       const q = query(collection(db, 'audioTracks'), where('hymnId', '==', hymn.id));
       const snap = await getDocs(q);
-      for (const d of snap.docs) {
-        const data = d.data();
-        if (data.storagePath) await deleteObject(ref(storage, data.storagePath)).catch(() => {});
-        await deleteDoc(d.ref);
-      }
-      if (hymn.pdfStoragePath) await deleteObject(ref(storage, hymn.pdfStoragePath)).catch(() => {});
+      await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
       await deleteDoc(doc(db, 'hymns', hymn.id));
       toast.success('Hymn deleted.');
     } catch {
@@ -533,17 +602,21 @@ function ManageHymnsView({ hymns }) {
     <>
       <div className="admin-panel">
         <div className="admin-panel-header">
-          <h3 className="admin-panel-title">All Hymns ({hymns.length})</h3>
+          <h3 className="admin-panel-title">All Hymns</h3>
+          <span className="admin-panel-count">{hymns.length}</span>
         </div>
         <div className="admin-panel-body">
           {hymns.length === 0 ? (
-            <p style={{ color: 'var(--color-text-dim)', fontSize: '0.9rem' }}>No hymns yet.</p>
+            <div className="admin-empty-state">
+              <FiMusic />
+              <p>No hymns yet. Add one first.</p>
+            </div>
           ) : (
             <div className="admin-hymns-list">
               {hymns.map(hymn => (
-                <div key={hymn.id}>
-                  {editingHymn === hymn.id ? (
-                    <div className="admin-hymn-item" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                <div key={hymn.id} className={`admin-hymn-item${editingId === hymn.id ? ' editing' : ''}`}>
+                  {editingId === hymn.id ? (
+                    <div className="admin-hymn-edit-form">
                       <div className="form-group">
                         <label className="form-label">Title</label>
                         <div className="form-input-wrap">
@@ -551,45 +624,60 @@ function ManageHymnsView({ hymns }) {
                           <input className="form-input" value={editTitle} onChange={e => setEditTitle(e.target.value)} />
                         </div>
                       </div>
-                      <div className="form-group" style={{ marginTop: 'var(--space-sm)' }}>
+                      <div className="form-group">
                         <label className="form-label">Description</label>
                         <textarea className="form-textarea" rows={2} value={editDesc} onChange={e => setEditDesc(e.target.value)} />
                       </div>
-                      <div style={{ display: 'flex', gap: 'var(--space-sm)', marginTop: 'var(--space-sm)' }}>
-                        <button className="admin-action-btn primary" onClick={saveEdit} disabled={saving}>
-                          {saving ? 'Saving...' : 'Save'}
+                      <div className="admin-edit-actions">
+                        <button
+                          type="button"
+                          className={`admin-action-btn primary${saving ? ' disabled' : ''}`}
+                          onClick={saveEdit}
+                          disabled={saving}
+                        >
+                          {saving ? 'Saving...' : 'Save Changes'}
                         </button>
-                        <button className="admin-action-btn edit" onClick={() => setEditingHymn(null)}>Cancel</button>
+                        <button type="button" className="admin-action-btn edit" onClick={() => setEditingId(null)}>Cancel</button>
                       </div>
                     </div>
                   ) : (
-                    <div className="admin-hymn-item">
+                    <>
                       <div className="admin-hymn-item-icon"><FiMusic /></div>
                       <div className="admin-hymn-item-info">
                         <div className="admin-hymn-item-title">{hymn.title}</div>
                         <div className="admin-hymn-item-meta">
-                          <span>{hymn.trackCount || 0} tracks</span>
-                          {hymn.pdfUrl && <span>PDF</span>}
-                          {hymn.description && <span>{hymn.description.slice(0, 40)}{hymn.description.length > 40 ? '…' : ''}</span>}
+                          <span>{hymn.trackCount || 0} track{hymn.trackCount !== 1 ? 's' : ''}</span>
+                          {hymn.pdfUrl && <span className="badge-pdf">PDF</span>}
                         </div>
                       </div>
                       <div className="admin-hymn-item-actions">
-                        <button className="admin-action-btn primary" onClick={() => setManagingHymn(hymn)} title="Manage tracks/PDF">
-                          <FiUpload /> Manage
-                        </button>
-                        <button className="admin-action-btn edit" onClick={() => startEdit(hymn)} title="Edit hymn">
-                          <FiEdit3 />
+                        <button
+                          type="button"
+                          className="admin-action-btn primary"
+                          onClick={() => setManagingHymn(hymn)}
+                          title="Manage tracks & PDF"
+                        >
+                          <FiUpload /> <span className="btn-label">Manage</span>
                         </button>
                         <button
-                          className="admin-action-btn delete"
+                          type="button"
+                          className="admin-action-btn edit"
+                          onClick={() => startEdit(hymn)}
+                          title="Edit"
+                        >
+                          <FiEdit3 /> <span className="btn-label">Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-action-btn delete icon-only"
                           onClick={() => deleteHymn(hymn)}
                           disabled={deleting === hymn.id}
-                          title="Delete hymn"
+                          title="Delete"
                         >
-                          {deleting === hymn.id ? '...' : <FiTrash2 />}
+                          {deleting === hymn.id ? <span className="btn-spinner" /> : <FiTrash2 />}
                         </button>
                       </div>
-                    </div>
+                    </>
                   )}
                 </div>
               ))}
@@ -607,7 +695,7 @@ function ManageHymnsView({ hymns }) {
   );
 }
 
-/* ---------- Settings View ---------- */
+/* ─── Settings View ──────────────────────────────────────────────── */
 function SettingsView({ user }) {
   return (
     <div className="admin-panel">
@@ -615,32 +703,34 @@ function SettingsView({ user }) {
         <h3 className="admin-panel-title">Settings</h3>
       </div>
       <div className="admin-panel-body">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)', maxWidth: 400 }}>
-          <div style={{ padding: 'var(--space-md)', background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--border-radius-md)', border: '1px solid var(--glass-border)' }}>
-            <p style={{ fontSize: '0.78rem', color: 'var(--color-text-dim)', marginBottom: 4 }}>Logged in as</p>
-            <p style={{ fontSize: '0.95rem', color: 'var(--color-text-white)', fontWeight: 600 }}>{user?.email}</p>
-          </div>
-          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>
-            To change password or email, use the Firebase Console.
-          </p>
+        <div className="settings-info-card">
+          <p className="settings-info-label">Signed in as</p>
+          <p className="settings-info-value">{user?.email}</p>
         </div>
+        <p className="settings-help-text">
+          To change your password or email, use the Firebase Console → Authentication.
+        </p>
       </div>
     </div>
   );
 }
 
-/* ---------- Sidebar ---------- */
-const NAV_ITEMS = [
-  { key: 'dashboard', icon: <FiHome />, label: 'Dashboard' },
-  { key: 'add', icon: <FiPlus />, label: 'Add Hymn' },
-  { key: 'manage', icon: <FiList />, label: 'Manage Hymns' },
-  { key: 'settings', icon: <FiSettings />, label: 'Settings' },
+/* ─── Sidebar ────────────────────────────────────────────────────── */
+const NAV = [
+  { key: 'dashboard', icon: <FiHome />,     label: 'Dashboard' },
+  { key: 'add',       icon: <FiPlus />,     label: 'Add Hymn' },
+  { key: 'manage',    icon: <FiList />,     label: 'Manage Hymns' },
+  { key: 'settings',  icon: <FiSettings />, label: 'Settings' },
 ];
 
 function Sidebar({ activeView, onNavigate, onLogout, open, onClose }) {
   return (
     <>
-      <div className={`sidebar-overlay${open ? ' visible' : ''}`} onClick={onClose} />
+      <div
+        className={`sidebar-overlay${open ? ' visible' : ''}`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
       <aside className={`admin-sidebar${open ? ' open' : ''}`}>
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon"><FiMusic /></div>
@@ -650,11 +740,12 @@ function Sidebar({ activeView, onNavigate, onLogout, open, onClose }) {
           </div>
         </div>
 
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" aria-label="Admin navigation">
           <p className="sidebar-nav-label">Navigation</p>
-          {NAV_ITEMS.map(item => (
+          {NAV.map(item => (
             <button
               key={item.key}
+              type="button"
               className={`sidebar-nav-item${activeView === item.key ? ' active' : ''}`}
               onClick={() => { onNavigate(item.key); onClose(); }}
             >
@@ -665,7 +756,7 @@ function Sidebar({ activeView, onNavigate, onLogout, open, onClose }) {
         </nav>
 
         <div className="sidebar-footer">
-          <button className="sidebar-logout-btn" onClick={onLogout}>
+          <button type="button" className="sidebar-logout-btn" onClick={onLogout}>
             <FiLogOut /> Sign Out
           </button>
         </div>
@@ -674,71 +765,65 @@ function Sidebar({ activeView, onNavigate, onLogout, open, onClose }) {
   );
 }
 
-/* ---------- Main Admin Page ---------- */
+/* ─── Main Admin Page ────────────────────────────────────────────── */
+const TITLE_MAP = {
+  dashboard: 'Dashboard', add: 'Add Hymn',
+  manage: 'Manage Hymns', settings: 'Settings',
+};
+
 export default function Admin() {
-  const [user, setUser] = useState(undefined);
+  const [user, setUser]             = useState(undefined);
   const [activeView, setActiveView] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [hymns, setHymns] = useState([]);
-  const [pageTitle, setPageTitle] = useState('Dashboard');
+  const [hymns, setHymns]           = useState([]);
 
-  const titleMap = { dashboard: 'Dashboard', add: 'Add Hymn', manage: 'Manage Hymns', settings: 'Settings' };
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, u => setUser(u || null));
-    return unsub;
-  }, []);
+  useEffect(() => onAuthStateChanged(auth, u => setUser(u || null)), []);
 
   useEffect(() => {
     if (!user) return;
     const q = query(collection(db, 'hymns'), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, snap => {
+    return onSnapshot(q, snap => {
       setHymns(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
-    return unsub;
   }, [user]);
 
   useEffect(() => {
-    setPageTitle(titleMap[activeView] || 'Dashboard');
-  }, [activeView]);
+    const close = () => { if (window.innerWidth >= 900) setSidebarOpen(false); };
+    window.addEventListener('resize', close, { passive: true });
+    return () => window.removeEventListener('resize', close);
+  }, []);
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    toast.success('Signed out.');
-  };
-
-  if (user === undefined) return null; // still loading auth state
-
-  if (!user) {
-    return <AuthForm onLogin={() => {}} />;
-  }
-
-  const navigate = (view) => setActiveView(view);
+  if (user === undefined) return null;
+  if (!user) return <AuthForm />;
 
   return (
     <div className="admin-layout">
-      {/* Mobile toggle */}
-      <button className="mobile-sidebar-toggle" onClick={() => setSidebarOpen(v => !v)}>
-        {sidebarOpen ? <FiX /> : <FiMenu />}
-      </button>
-
       <Sidebar
         activeView={activeView}
-        onNavigate={navigate}
-        onLogout={handleLogout}
+        onNavigate={setActiveView}
+        onLogout={() => { signOut(auth); toast.success('Signed out.'); }}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
 
       <div className="admin-main">
         <div className="admin-topbar">
-          <h1 className="admin-topbar-title">{pageTitle}</h1>
+          <div className="admin-topbar-left">
+            <button
+              type="button"
+              className="admin-hamburger"
+              onClick={() => setSidebarOpen(v => !v)}
+              aria-label="Toggle sidebar"
+              aria-expanded={sidebarOpen}
+            >
+              {sidebarOpen ? <FiX /> : <FiMenu />}
+            </button>
+            <h1 className="admin-topbar-title">{TITLE_MAP[activeView]}</h1>
+          </div>
           <div className="admin-topbar-right">
             <div className="admin-user-badge">
-              <div className="admin-user-avatar">
-                {user.email?.[0]?.toUpperCase()}
-              </div>
-              {user.email}
+              <div className="admin-user-avatar">{user.email?.[0]?.toUpperCase()}</div>
+              <span className="admin-user-email">{user.email}</span>
             </div>
           </div>
         </div>
@@ -747,15 +832,15 @@ export default function Admin() {
           <AnimatePresence mode="wait">
             <motion.div
               key={activeView}
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -16 }}
-              transition={{ duration: 0.25 }}
+              exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.22 }}
             >
               {activeView === 'dashboard' && <DashboardView hymns={hymns} />}
-              {activeView === 'add' && <AddHymnView onAdded={() => navigate('manage')} />}
-              {activeView === 'manage' && <ManageHymnsView hymns={hymns} />}
-              {activeView === 'settings' && <SettingsView user={user} />}
+              {activeView === 'add'       && <AddHymnView onAdded={() => setActiveView('manage')} />}
+              {activeView === 'manage'    && <ManageHymnsView hymns={hymns} />}
+              {activeView === 'settings'  && <SettingsView user={user} />}
             </motion.div>
           </AnimatePresence>
         </div>
