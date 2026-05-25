@@ -4,11 +4,11 @@ import { motion } from 'framer-motion';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { FiArrowRight, FiHeadphones, FiBookOpen, FiUsers, FiMessageCircle } from 'react-icons/fi';
 import { BsWhatsapp, BsMusicNoteBeamed, BsMusicNote } from 'react-icons/bs';
-import { db } from '../../firebase/config';
-import HymnCard from '../../components/HymnCard';
-import SearchBar from '../../components/SearchBar';
-import { SkeletonCard } from '../../components/Loader';
-import EmptyState from '../../components/EmptyState';
+import { db } from '../firebase/config';
+import HymnCard from '../components/HymnCard';
+import SearchBar from '../components/SearchBar';
+import { SkeletonCard } from '../components/Loader';
+import EmptyState from '../components/EmptyState';
 import '../styles/Home.css';
 
 const MUSIC_NOTES = ['♩', '♪', '♫', '♬', '𝄞', '♩', '♪', '♬'];

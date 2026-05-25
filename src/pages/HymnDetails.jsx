@@ -4,10 +4,10 @@ import { motion } from 'framer-motion';
 import { doc, getDoc, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { FiArrowLeft, FiMusic, FiCalendar, FiHeadphones, FiDownload, FiEye } from 'react-icons/fi';
 import { BsFilePdf } from 'react-icons/bs';
-import { db } from '../../firebase/config';
-import AudioTrackCard from '../../components/AudioTrackCard';
-import { Loader } from '../../components/Loader';
-import EmptyState from '../../components/EmptyState';
+import { db } from '../firebase/config';
+import AudioTrackCard from '../components/AudioTrackCard';
+import { Loader } from '../components/Loader';
+import EmptyState from '../components/EmptyState';
 import '../styles/HymnDetails.css';
 
 function formatDate(ts) {
