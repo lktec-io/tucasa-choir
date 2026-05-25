@@ -227,6 +227,7 @@ function ManageHymnModal({ hymn, onClose }) {
   };
 
   const handleUploadAudio = async () => {
+    console.log('%c[Admin v4] handleUploadAudio FIRED – NEW CODE IS RUNNING', 'color:cyan;font-weight:bold');
     if (!trackTitle.trim()) { setAudioError('Track title is required.'); return; }
     const err = validateAudioFile(audioFile);
     if (err) { setAudioError(err); return; }
@@ -253,6 +254,7 @@ function ManageHymnModal({ hymn, onClose }) {
   };
 
   const handleUploadPdf = async () => {
+    console.log('%c[Admin v4] handleUploadPdf FIRED – NEW CODE IS RUNNING', 'color:cyan;font-weight:bold');
     const err = validatePDFFile(pdfFile);
     if (err) { setPdfError(err); return; }
     setPdfError('');
