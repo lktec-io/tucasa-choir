@@ -33,16 +33,18 @@ export function formatFileSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-async function uploadToCloudinary(file, resourceType = 'auto', onProgress) {
+async function uploadToCloudinary(file, onProgress) {
   if (!CLOUD_NAME || !UPLOAD_PRESET) {
-    throw new Error('Cloudinary is not configured. Please set VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET in your .env file.');
+    throw new Error(
+      'Cloudinary is not configured. Add VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET to your .env file.'
+    );
   }
 
   const formData = new FormData();
   formData.append('file', file);
   formData.append('upload_preset', UPLOAD_PRESET);
 
-  const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`;
+  const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`;
 
   const response = await axios.post(url, formData, {
     onUploadProgress: (event) => {
@@ -52,14 +54,14 @@ async function uploadToCloudinary(file, resourceType = 'auto', onProgress) {
     },
   });
 
-  if (!response.data?.secure_url) throw new Error('Upload succeeded but no URL returned.');
+  if (!response.data?.secure_url) throw new Error('Upload succeeded but no URL was returned.');
   return response.data.secure_url;
 }
 
 export async function uploadAudio(file, onProgress) {
-  return uploadToCloudinary(file, 'video', onProgress);
+  return uploadToCloudinary(file, onProgress);
 }
 
 export async function uploadPDF(file, onProgress) {
-  return uploadToCloudinary(file, 'raw', onProgress);
+  return uploadToCloudinary(file, onProgress);
 }
