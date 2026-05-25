@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { doc, getDoc, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { FiArrowLeft, FiMusic, FiCalendar, FiHeadphones, FiDownload, FiEye } from 'react-icons/fi';
+import { FiArrowLeft, FiMusic, FiCalendar, FiHeadphones, FiDownload, FiEye, FiExternalLink } from 'react-icons/fi';
 import { BsFilePdf } from 'react-icons/bs';
 import { db } from '../firebase/config';
+import { getPdfDownloadUrl } from '../services/cloudinary';
 import AudioTrackCard from '../components/AudioTrackCard';
 import { Loader } from '../components/Loader';
 import EmptyState from '../components/EmptyState';
@@ -110,6 +111,7 @@ export default function HymnDetails() {
           transition={{ delay: 0.2 }}
         >
           <p className="section-label">Sheet Music</p>
+
           <div className="pdf-card">
             <div className="pdf-icon-wrap">
               <BsFilePdf />
@@ -117,15 +119,15 @@ export default function HymnDetails() {
             <div className="pdf-info">
               <p className="pdf-title">{hymn.title} — Sheet Music</p>
               <p className="pdf-subtitle">
-                {hymn.pdfUrl ? 'PDF available for download and preview' : 'No sheet music uploaded yet'}
+                {hymn.pdfUrl ? 'PDF available for preview and download' : 'No sheet music uploaded yet'}
               </p>
             </div>
             {hymn.pdfUrl ? (
               <div className="pdf-actions">
                 <a href={hymn.pdfUrl} target="_blank" rel="noreferrer" className="pdf-btn primary">
-                  <FiEye /> Preview
+                  <FiExternalLink /> Open PDF
                 </a>
-                <a href={hymn.pdfUrl} download className="pdf-btn secondary">
+                <a href={getPdfDownloadUrl(hymn.pdfUrl)} className="pdf-btn secondary">
                   <FiDownload /> Download
                 </a>
               </div>
@@ -133,6 +135,21 @@ export default function HymnDetails() {
               <p className="pdf-no-file">Not yet available</p>
             )}
           </div>
+
+          {hymn.pdfUrl && (
+            <div className="pdf-preview-wrap">
+              <iframe
+                src={hymn.pdfUrl}
+                className="pdf-iframe"
+                title={`${hymn.title} Sheet Music`}
+                loading="lazy"
+              />
+              <p className="pdf-preview-hint">
+                Can't see the preview?{' '}
+                <a href={hymn.pdfUrl} target="_blank" rel="noreferrer">Open in new tab</a>
+              </p>
+            </div>
+          )}
         </motion.div>
 
         {/* Voice Tracks */}

@@ -227,6 +227,35 @@
   font-style: italic;
 }
 
+/* PDF inline preview */
+.pdf-preview-wrap {
+  margin-top: var(--space-md);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.pdf-iframe {
+  width: 100%;
+  height: 720px;
+  display: block;
+  border: none;
+}
+
+.pdf-preview-hint {
+  font-size: 0.78rem;
+  color: var(--color-text-dim);
+  text-align: center;
+  padding: var(--space-sm) var(--space-md);
+  border-top: 1px solid var(--glass-border);
+}
+
+.pdf-preview-hint a {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
 /* Voice tracks grid */
 .tracks-grid {
   display: grid;
@@ -247,13 +276,43 @@
     gap: var(--space-md);
   }
 
+  .hymn-details-icon {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    font-size: 24px;
+  }
+
   .pdf-card {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-md);
   }
 
+  .pdf-actions {
+    width: 100%;
+  }
+
+  .pdf-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .pdf-iframe {
+    height: 480px;
+  }
+
   .tracks-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .hymn-details-page {
+    padding-top: calc(60px + var(--space-xl));
+  }
+
+  .pdf-iframe {
+    height: 360px;
   }
 }

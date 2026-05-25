@@ -2,10 +2,11 @@ import axios from 'axios';
 
 const CLOUD_NAME    = 'dod8srxyj';
 const UPLOAD_PRESET = 'tucasa-choir';
-const UPLOAD_URL    = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`;
 
-// Debug banner – remove after confirming cache is cleared
-console.log('%c[Cloudinary] LOADED v3 – preset=tucasa-choir cloud=dod8srxyj', 'color:lime;font-weight:bold');
+// Audio: auto-detect (handles mp3/wav/m4a)
+const AUDIO_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`;
+// PDF: raw endpoint – preserves content-type so browser renders PDF directly
+const PDF_UPLOAD_URL   = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/raw/upload`;
 
 const ALLOWED_AUDIO_EXT  = ['mp3', 'wav', 'm4a'];
 const MAX_AUDIO_BYTES    = 50 * 1024 * 1024;  // 50 MB
@@ -40,13 +41,21 @@ export function formatFileSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-async function uploadToCloudinary(file, onProgress) {
+// Transforms a Cloudinary URL to force browser download via Content-Disposition: attachment
+export function getPdfDownloadUrl(url) {
+  if (!url) return url;
+  if (url.includes('/raw/upload/'))   return url.replace('/raw/upload/',   '/raw/upload/fl_attachment/');
+  if (url.includes('/image/upload/')) return url.replace('/image/upload/', '/image/upload/fl_attachment/');
+  return url;
+}
+
+async function uploadFile(uploadUrl, file, onProgress) {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('upload_preset', UPLOAD_PRESET);
 
   try {
-    const response = await axios.post(UPLOAD_URL, formData, {
+    const response = await axios.post(uploadUrl, formData, {
       onUploadProgress: (event) => {
         if (event.total && onProgress) {
           onProgress(Math.min(99, Math.round((event.loaded * 100) / event.total)));
@@ -59,12 +68,11 @@ async function uploadToCloudinary(file, onProgress) {
     return url;
 
   } catch (err) {
-    // Surface Cloudinary's own error message when available
     const cldMsg = err.response?.data?.error?.message;
     if (cldMsg) throw new Error(`Cloudinary: ${cldMsg}`);
     throw err;
   }
 }
 
-export const uploadAudio = (file, onProgress) => uploadToCloudinary(file, onProgress);
-export const uploadPDF   = (file, onProgress) => uploadToCloudinary(file, onProgress);
+export const uploadAudio = (file, onProgress) => uploadFile(AUDIO_UPLOAD_URL, file, onProgress);
+export const uploadPDF   = (file, onProgress) => uploadFile(PDF_UPLOAD_URL,   file, onProgress);
