@@ -21,7 +21,7 @@ export function validatePDFFile(file) {
   if (ext !== 'pdf' && file.type !== 'application/pdf') return 'Only PDF files are allowed.';
   if (file.size > MAX_PDF_BYTES) return `PDF must be under ${MAX_PDF_BYTES / 1024 / 1024}MB.`;
   return null;
-}
+} 
 
 export function formatFileSize(bytes) {
   if (!bytes) return '';
@@ -41,8 +41,8 @@ const UPLOAD_PRESET = "tucasa-choir";
   if (!CLOUD_NAME || !UPLOAD_PRESET) {
     const msg =
       'Cloudinary environment variables are missing.\n' +
-      `  VITE_CLOUDINARY_CLOUD_NAME   = "${cloudName}"\n` +
-      `  VITE_CLOUDINARY_UPLOAD_PRESET = "${uploadPreset}"\n\n` +
+      `  VITE_CLOUDINARY_CLOUD_NAME   = "${CLOUD_NAME}"\n` +
+      `  VITE_CLOUDINARY_UPLOAD_PRESET = "${UPLOAD_PRESET}"\n\n` +
       'LOCAL  → Add both to your .env file, then restart the dev server (Ctrl+C → npm run dev).\n' +
       'NETLIFY → Go to Site Settings → Environment Variables and add both keys, then trigger a new deploy.';
     console.error('[Cloudinary]', msg);
@@ -54,9 +54,9 @@ const UPLOAD_PRESET = "tucasa-choir";
 
   const formData = new FormData();
   formData.append('file', file);
-  formData.append('upload_preset', uploadPreset);
+  formData.append('upload_preset', UPLOAD_PRESET);
 
-  const url = `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
+  const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`;
 
   const response = await axios.post(url, formData, {
     onUploadProgress: (event) => {
