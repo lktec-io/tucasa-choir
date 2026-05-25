@@ -35,10 +35,10 @@ async function uploadToCloudinary(file, onProgress) {
   // In Vite, import.meta.env values are injected at build time — these MUST
   // be set in the Netlify dashboard (Site Settings → Environment Variables)
   // before deploying, or in a local .env file before running `npm run dev`.
-  const cloudName    = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+const CLOUD_NAME = "dod8srxyj";
+const UPLOAD_PRESET = "tucasa-choir";
 
-  if (!cloudName || !uploadPreset) {
+  if (!CLOUD_NAME || !UPLOAD_PRESET) {
     const msg =
       'Cloudinary environment variables are missing.\n' +
       `  VITE_CLOUDINARY_CLOUD_NAME   = "${cloudName}"\n` +
