@@ -4,6 +4,9 @@ const CLOUD_NAME    = 'dod8srxyj';
 const UPLOAD_PRESET = 'tucasa-choir';
 const UPLOAD_URL    = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`;
 
+// Debug banner – remove after confirming cache is cleared
+console.log('%c[Cloudinary] LOADED v3 – preset=tucasa-choir cloud=dod8srxyj', 'color:lime;font-weight:bold');
+
 const ALLOWED_AUDIO_EXT  = ['mp3', 'wav', 'm4a'];
 const MAX_AUDIO_BYTES    = 50 * 1024 * 1024;  // 50 MB
 const MAX_PDF_BYTES      = 15 * 1024 * 1024;  // 15 MB
