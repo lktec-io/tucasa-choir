@@ -24,14 +24,19 @@ export default function App() {
         position="top-right"
         toastOptions={{
           style: {
-            background: '#1a4a2e',
-            color: '#e8f5ee',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '10px',
+            background: theme === 'dark' ? '#1a4a2e' : '#ffffff',
+            color: theme === 'dark' ? '#e8f5ee' : '#1e3d2a',
+            border: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(26,74,46,0.18)'}`,
+            borderRadius: '12px',
             fontSize: '0.88rem',
+            boxShadow: theme === 'dark' ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.12)',
           },
-          success: { iconTheme: { primary: '#4caf7d', secondary: '#e8f5ee' } },
-          error: { iconTheme: { primary: '#f87171', secondary: '#e8f5ee' } },
+          success: {
+            iconTheme: { primary: '#4caf7d', secondary: theme === 'dark' ? '#e8f5ee' : '#fff' },
+          },
+          error: {
+            iconTheme: { primary: '#f87171', secondary: theme === 'dark' ? '#e8f5ee' : '#fff' },
+          },
         }}
       />
       <Routes>

@@ -139,14 +139,15 @@ export default function HymnDetails() {
           {hymn.pdfUrl && (
             <div className="pdf-preview-wrap">
               <iframe
-                src={hymn.pdfUrl}
+                src={`https://docs.google.com/viewer?url=${encodeURIComponent(hymn.pdfUrl)}&embedded=true`}
                 className="pdf-iframe"
                 title={`${hymn.title} Sheet Music`}
                 loading="lazy"
+                allowFullScreen
               />
               <p className="pdf-preview-hint">
-                Can't see the preview?{' '}
-                <a href={hymn.pdfUrl} target="_blank" rel="noreferrer">Open in new tab</a>
+                Preview not showing?{' '}
+                <a href={hymn.pdfUrl} target="_blank" rel="noreferrer">Open PDF directly</a>
               </p>
             </div>
           )}

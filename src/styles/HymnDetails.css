@@ -29,6 +29,8 @@
   margin-bottom: var(--space-2xl);
   position: relative;
   overflow: hidden;
+  transition: var(--transition-theme), border-color 0.3s ease;
+  box-shadow: var(--shadow-card);
 }
 
 .hymn-details-hero::before {
@@ -147,6 +149,8 @@
   align-items: center;
   gap: var(--space-xl);
   flex-wrap: wrap;
+  transition: var(--transition-theme), border-color 0.3s ease;
+  box-shadow: var(--shadow-card);
 }
 
 .pdf-icon-wrap {
@@ -233,7 +237,9 @@
   border-radius: var(--border-radius-lg);
   overflow: hidden;
   border: 1px solid var(--glass-border);
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--color-bg-secondary);
+  transition: border-color 0.3s ease, background 0.3s ease;
+  box-shadow: var(--shadow-card);
 }
 
 .pdf-iframe {
@@ -241,19 +247,21 @@
   height: 720px;
   display: block;
   border: none;
+  background: transparent;
 }
 
 .pdf-preview-hint {
   font-size: 0.78rem;
   color: var(--color-text-dim);
   text-align: center;
-  padding: var(--space-sm) var(--space-md);
+  padding: 10px var(--space-md);
   border-top: 1px solid var(--glass-border);
 }
 
 .pdf-preview-hint a {
   color: var(--color-accent);
   text-decoration: underline;
+  font-weight: 500;
 }
 
 /* Voice tracks grid */

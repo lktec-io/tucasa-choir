@@ -7,11 +7,11 @@
   height: 70px;
   display: flex;
   align-items: center;
-  transition: all var(--transition-base);
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .navbar.scrolled {
-  background: rgba(10, 26, 16, 0.92);
+  background: var(--navbar-scrolled-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--glass-border);
@@ -44,7 +44,9 @@
   align-items: center;
   justify-content: center;
   font-size: 20px;
+  color: #fff;
   box-shadow: var(--shadow-glow);
+  transition: box-shadow 0.3s ease;
 }
 
 .navbar-logo-text {
@@ -58,6 +60,7 @@
   font-size: 1rem;
   color: var(--color-text-white);
   line-height: 1.1;
+  transition: color 0.3s ease;
 }
 
 .navbar-logo-subtitle {
@@ -119,7 +122,7 @@
   justify-content: center;
   color: var(--color-text-muted);
   font-size: 16px;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast), background 0.3s ease;
   backdrop-filter: blur(10px);
 }
 
@@ -165,25 +168,36 @@
   top: 70px;
   left: 0;
   right: 0;
-  background: rgba(10, 26, 16, 0.97);
+  background: var(--navbar-mobile-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--glass-border);
-  padding: var(--space-lg);
+  padding: var(--space-md) var(--space-lg) var(--space-lg);
   flex-direction: column;
-  gap: var(--space-md);
+  gap: var(--space-xs);
   z-index: calc(var(--z-sticky) - 1);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .mobile-menu.open {
   display: flex;
-  animation: slideInRight var(--transition-base) ease;
+  animation: menuSlideDown var(--transition-base) ease both;
 }
 
 .mobile-menu .navbar-link {
   font-size: 1rem;
-  padding: var(--space-sm) 0;
+  padding: 14px var(--space-sm);
   border-bottom: 1px solid var(--glass-border);
+  border-radius: var(--border-radius-sm);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.mobile-menu .navbar-link:last-child {
+  border-bottom: none;
+}
+
+.mobile-menu .navbar-link:hover {
+  background: var(--glass-bg);
 }
 
 @media (max-width: 768px) {
