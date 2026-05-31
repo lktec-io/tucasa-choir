@@ -710,7 +710,7 @@ function SettingsView({ user }) {
           <p className="settings-info-value">{user?.email}</p>
         </div>
         <p className="settings-help-text">
-          To change your password or email, use the Firebase Console → Authentication.
+          To change your password or email, contact the administrator. This panel is for managing hymns, tracks, and sheet music.
         </p>
       </div>
     </div>
