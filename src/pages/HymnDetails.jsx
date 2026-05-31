@@ -5,7 +5,6 @@ import { doc, getDoc, collection, query, where, orderBy, onSnapshot } from 'fire
 import { FiArrowLeft, FiMusic, FiCalendar, FiHeadphones, FiDownload, FiExternalLink } from 'react-icons/fi';
 import { BsFilePdf } from 'react-icons/bs';
 import { db } from '../firebase/config';
-import { downloadFile } from '../services/storage';
 import AudioTrackCard from '../components/AudioTrackCard';
 import { Loader } from '../components/Loader';
 import EmptyState from '../components/EmptyState';
@@ -127,13 +126,9 @@ export default function HymnDetails() {
                 <a href={hymn.pdfUrl} target="_blank" rel="noreferrer" className="pdf-btn primary">
                   <FiExternalLink /> Open PDF
                 </a>
-                <button
-                  type="button"
-                  className="pdf-btn secondary"
-                  onClick={() => downloadFile(hymn.pdfUrl, hymn.pdfOriginalName || `${hymn.title} Sheet Music.pdf`)}
-                >
+                <a href={hymn.pdfUrl} download={hymn.pdfOriginalName || `${hymn.title} Sheet Music.pdf`} className="pdf-btn secondary">
                   <FiDownload /> Download
-                </button>
+                </a>
               </div>
             ) : (
               <p className="pdf-no-file">Not yet available</p>

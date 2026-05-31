@@ -9,7 +9,7 @@ import { auth, db } from '../firebase/config';
 import {
   uploadAudio, uploadPDF,
   validateAudioFile, validatePDFFile, formatFileSize
-} from '../services/storage';
+} from '../services/cloudinary';
 import { toast } from 'react-hot-toast';
 import {
   FiMail, FiLock, FiLogOut, FiMenu, FiX, FiHome, FiPlus,
@@ -234,7 +234,7 @@ function ManageHymnModal({ hymn, onClose }) {
     setUploadingAudio(true);
     setAudioProgress(0);
     try {
-      const audioUrl = await uploadAudio(audioFile, hymn.id, setAudioProgress);
+      const audioUrl = await uploadAudio(audioFile, setAudioProgress);
       await addDoc(collection(db, 'audioTracks'), {
         hymnId: hymn.id,
         title: trackTitle.trim(),
@@ -258,8 +258,10 @@ function ManageHymnModal({ hymn, onClose }) {
     setPdfError('');
     setUploadingPdf(true); setPdfProgress(0);
     try {
-      const pdfUrl = await uploadPDF(pdfFile, hymn.id, setPdfProgress);
-      await updateDoc(doc(db, 'hymns', hymn.id), { pdfUrl, pdfOriginalName: pdfFile.name });
+      const { secure_url, public_id, original_filename } = await uploadPDF(pdfFile, setPdfProgress);
+      const firestorePayload = { pdfUrl: secure_url, pdfPublicId: public_id, pdfOriginalName: original_filename };
+      console.log('[Admin] Saving PDF to Firestore:', firestorePayload);
+      await updateDoc(doc(db, 'hymns', hymn.id), firestorePayload);
       setPdfProgress(100);
       toast.success('PDF uploaded!');
       setPdfFile(null); setPdfProgress(0);
