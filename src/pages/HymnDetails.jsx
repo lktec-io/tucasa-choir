@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { doc, getDoc, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { FiArrowLeft, FiMusic, FiCalendar, FiHeadphones, FiDownload, FiEye, FiImage } from 'react-icons/fi';
+import { FiArrowLeft, FiMusic, FiCalendar, FiHeadphones, FiDownload, FiEye, FiImage, FiX, FiMaximize2 } from 'react-icons/fi';
 import { BsFilePdf } from 'react-icons/bs';
 import { db } from '../firebase/config';
 import AudioTrackCard from '../components/AudioTrackCard';
@@ -37,6 +37,15 @@ export default function HymnDetails() {
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tracksLoading, setTracksLoading] = useState(true);
+  const [showPreview, setShowPreview] = useState(false);
+
+  const closePreview = useCallback(() => setShowPreview(false), []);
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') closePreview(); };
+    if (showPreview) document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [showPreview, closePreview]);
 
   useEffect(() => {
     getDoc(doc(db, 'hymns', id)).then(snap => {
@@ -140,9 +149,13 @@ export default function HymnDetails() {
             </div>
             {hymn.pdfUrl ? (
               <div className="pdf-actions">
-                <a href={hymn.pdfUrl} target="_blank" rel="noreferrer" className="pdf-btn primary">
+                <button
+                  type="button"
+                  className="pdf-btn primary"
+                  onClick={() => setShowPreview(true)}
+                >
                   <FiEye /> Preview
-                </a>
+                </button>
                 <button
                   type="button"
                   className="pdf-btn secondary"
@@ -159,6 +172,71 @@ export default function HymnDetails() {
             )}
           </div>
         </motion.div>
+
+        {/* Sheet Music Preview Modal */}
+        <AnimatePresence>
+          {showPreview && hymn.pdfUrl && (
+            <motion.div
+              className="sheet-preview-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.target === e.currentTarget && closePreview()}
+            >
+              <motion.div
+                className="sheet-preview-modal"
+                initial={{ opacity: 0, scale: 0.94, y: 24 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.94, y: 24 }}
+                transition={{ duration: 0.22 }}
+              >
+                <div className="sheet-preview-header">
+                  <div className="sheet-preview-header-left">
+                    {['jpg', 'jpeg', 'png'].includes((hymn.pdfFormat || '').toLowerCase())
+                      ? <FiImage className="sheet-preview-type-icon" />
+                      : <BsFilePdf className="sheet-preview-type-icon" />}
+                    <span className="sheet-preview-title">{hymn.title} — Sheet Music</span>
+                  </div>
+                  <div className="sheet-preview-header-actions">
+                    <a
+                      href={hymn.pdfUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="sheet-preview-action-btn"
+                      title="Open in new tab"
+                    >
+                      <FiMaximize2 />
+                    </a>
+                    <button
+                      type="button"
+                      className="sheet-preview-action-btn"
+                      onClick={closePreview}
+                      title="Close"
+                    >
+                      <FiX />
+                    </button>
+                  </div>
+                </div>
+                <div className="sheet-preview-body">
+                  {['jpg', 'jpeg', 'png'].includes((hymn.pdfFormat || '').toLowerCase()) ? (
+                    <img
+                      src={hymn.pdfUrl}
+                      alt={`${hymn.title} Sheet Music`}
+                      className="sheet-preview-img"
+                    />
+                  ) : (
+                    <iframe
+                      src={hymn.pdfUrl}
+                      className="sheet-preview-iframe"
+                      title={`${hymn.title} Sheet Music`}
+                    />
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Voice Tracks */}
         <motion.div
