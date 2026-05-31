@@ -710,7 +710,7 @@ function SettingsView({ user }) {
           <p className="settings-info-value">{user?.email}</p>
         </div>
         <p className="settings-help-text">
-          To change your password or email, contact the administrator. This panel is for managing hymns, tracks, and sheet music.
+          To change your password or email, contact administrator. This panel is for managing hymns, tracks, and sheet music.
         </p>
       </div>
     </div>
