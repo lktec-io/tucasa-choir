@@ -4,9 +4,10 @@ const CLOUD_NAME    = 'dod8srxyj';
 const UPLOAD_PRESET = 'tucasa-choir';
 const UPLOAD_URL    = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`;
 
-const ALLOWED_AUDIO_EXT = ['mp3', 'wav', 'm4a'];
-const MAX_AUDIO_BYTES   = 50 * 1024 * 1024;  // 50 MB
-const MAX_PDF_BYTES     = 15 * 1024 * 1024;  // 15 MB
+const ALLOWED_AUDIO_EXT  = ['mp3', 'wav', 'm4a'];
+const ALLOWED_SHEET_EXT  = ['pdf', 'jpg', 'jpeg', 'png'];
+const MAX_AUDIO_BYTES    = 50 * 1024 * 1024;  // 50 MB
+const MAX_SHEET_BYTES    = 20 * 1024 * 1024;  // 20 MB
 
 export function validateAudioFile(file) {
   if (!file) return 'Please select an audio file.';
@@ -17,9 +18,10 @@ export function validateAudioFile(file) {
 }
 
 export function validatePDFFile(file) {
-  if (!file) return 'Please select a PDF file.';
-  if (file.name.split('.').pop().toLowerCase() !== 'pdf') return 'Only PDF files are allowed.';
-  if (file.size > MAX_PDF_BYTES) return `PDF must be under ${MAX_PDF_BYTES / 1024 / 1024} MB.`;
+  if (!file) return 'Please select a file.';
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!ALLOWED_SHEET_EXT.includes(ext)) return 'Only PDF, JPG, and PNG files are allowed.';
+  if (file.size > MAX_SHEET_BYTES) return `File must be under ${MAX_SHEET_BYTES / 1024 / 1024} MB.`;
   return null;
 }
 
@@ -49,7 +51,7 @@ async function uploadToCloudinary(file, onProgress) {
     console.log('[Cloudinary] Upload response:', { secure_url, public_id, original_filename, resource_type, format });
 
     if (!secure_url) throw new Error('Upload succeeded but no secure_url was returned.');
-    return { secure_url, public_id, original_filename: original_filename || file.name };
+    return { secure_url, public_id, original_filename: original_filename || file.name, format: format || '' };
 
   } catch (err) {
     const cldMsg = err.response?.data?.error?.message;

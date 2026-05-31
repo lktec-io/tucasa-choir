@@ -250,6 +250,14 @@
   background: transparent;
 }
 
+.sheet-music-img {
+  width: 100%;
+  display: block;
+  object-fit: contain;
+  max-height: 880px;
+  background: var(--color-bg-secondary);
+}
+
 .pdf-preview-hint {
   font-size: 0.78rem;
   color: var(--color-text-dim);
@@ -310,6 +318,10 @@
     height: 480px;
   }
 
+  .sheet-music-img {
+    max-height: 600px;
+  }
+
   .tracks-grid {
     grid-template-columns: 1fr;
   }
@@ -322,5 +334,9 @@
 
   .pdf-iframe {
     height: 360px;
+  }
+
+  .sheet-music-img {
+    max-height: 420px;
   }
 }

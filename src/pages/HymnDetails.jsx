@@ -137,15 +137,24 @@ export default function HymnDetails() {
 
           {hymn.pdfUrl && (
             <div className="pdf-preview-wrap">
-              <iframe
-                src={hymn.pdfUrl}
-                className="pdf-iframe"
-                title={`${hymn.title} Sheet Music`}
-                loading="lazy"
-              />
+              {['jpg', 'jpeg', 'png'].includes((hymn.pdfFormat || '').toLowerCase()) ? (
+                <img
+                  src={hymn.pdfUrl}
+                  alt={`${hymn.title} Sheet Music`}
+                  className="sheet-music-img"
+                  loading="lazy"
+                />
+              ) : (
+                <iframe
+                  src={hymn.pdfUrl}
+                  className="pdf-iframe"
+                  title={`${hymn.title} Sheet Music`}
+                  loading="lazy"
+                />
+              )}
               <p className="pdf-preview-hint">
                 Preview not showing?{' '}
-                <a href={hymn.pdfUrl} target="_blank" rel="noreferrer">Open PDF directly</a>
+                <a href={hymn.pdfUrl} target="_blank" rel="noreferrer">Open directly</a>
               </p>
             </div>
           )}

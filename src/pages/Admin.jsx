@@ -258,12 +258,12 @@ function ManageHymnModal({ hymn, onClose }) {
     setPdfError('');
     setUploadingPdf(true); setPdfProgress(0);
     try {
-      const { secure_url, public_id, original_filename } = await uploadPDF(pdfFile, setPdfProgress);
-      const firestorePayload = { pdfUrl: secure_url, pdfPublicId: public_id, pdfOriginalName: original_filename };
-      console.log('[Admin] Saving PDF to Firestore:', firestorePayload);
+      const { secure_url, public_id, original_filename, format } = await uploadPDF(pdfFile, setPdfProgress);
+      const firestorePayload = { pdfUrl: secure_url, pdfPublicId: public_id, pdfOriginalName: original_filename, pdfFormat: format };
+      console.log('[Admin] Saving sheet music to Firestore:', firestorePayload);
       await updateDoc(doc(db, 'hymns', hymn.id), firestorePayload);
       setPdfProgress(100);
-      toast.success('PDF uploaded!');
+      toast.success('Sheet music uploaded!');
       setPdfFile(null); setPdfProgress(0);
     } catch (err) {
       toast.error(err.message || 'PDF upload failed.');
@@ -306,18 +306,18 @@ function ManageHymnModal({ hymn, onClose }) {
         <div className="modal-body">
           {/* PDF Upload */}
           <div className="modal-section">
-            <p className="modal-section-label"><BsFilePdf /> Sheet Music (PDF)</p>
+            <p className="modal-section-label"><BsFilePdf /> Sheet Music</p>
             <FileDropZone
-              accept=".pdf,application/pdf"
+              accept=".pdf,application/pdf,.jpg,.jpeg,.png,image/jpeg,image/png"
               onFile={handlePdfFileSelect}
               file={pdfFile}
               onClear={() => setPdfFile(null)}
               Icon={BsFilePdf}
-              label="Drop PDF here or click to browse"
-              hint="PDF only · max 15 MB"
+              label="Drop PDF or image here or click to browse"
+              hint="PDF, JPG, PNG · max 20 MB"
             />
             {pdfError && <p className="field-error"><FiAlertCircle /> {pdfError}</p>}
-            {uploadingPdf && <UploadProgress progress={pdfProgress} label="Uploading PDF..." />}
+            {uploadingPdf && <UploadProgress progress={pdfProgress} label="Uploading..." />}
             <button
               type="button"
               className={`upload-submit-btn${uploadingPdf || !pdfFile ? ' disabled' : ''}`}
@@ -326,7 +326,7 @@ function ManageHymnModal({ hymn, onClose }) {
             >
               {uploadingPdf
                 ? <><span className="btn-spinner" /> Uploading...</>
-                : <><FiUpload /> Upload PDF</>
+                : <><FiUpload /> Upload Sheet Music</>
               }
             </button>
           </div>
