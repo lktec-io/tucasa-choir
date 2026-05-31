@@ -2,13 +2,27 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { doc, getDoc, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { FiArrowLeft, FiMusic, FiCalendar, FiHeadphones, FiDownload, FiExternalLink } from 'react-icons/fi';
+import { FiArrowLeft, FiMusic, FiCalendar, FiHeadphones, FiDownload, FiEye, FiImage } from 'react-icons/fi';
 import { BsFilePdf } from 'react-icons/bs';
 import { db } from '../firebase/config';
 import AudioTrackCard from '../components/AudioTrackCard';
 import { Loader } from '../components/Loader';
 import EmptyState from '../components/EmptyState';
 import '../styles/HymnDetails.css';
+
+async function triggerDownload(url, filename) {
+  try {
+    const res  = await fetch(url);
+    const blob = await res.blob();
+    const a    = document.createElement('a');
+    a.href     = URL.createObjectURL(blob);
+    a.download = filename || 'sheet-music';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch {
+    window.open(url, '_blank');
+  }
+}
 
 function formatDate(ts) {
   if (!ts) return '';
@@ -102,7 +116,7 @@ export default function HymnDetails() {
           </div>
         </motion.div>
 
-        {/* PDF Section */}
+        {/* Sheet Music Section */}
         <motion.div
           className="pdf-section"
           initial={{ opacity: 0, y: 20 }}
@@ -110,54 +124,40 @@ export default function HymnDetails() {
           transition={{ delay: 0.2 }}
         >
           <p className="section-label">Sheet Music</p>
-
           <div className="pdf-card">
             <div className="pdf-icon-wrap">
-              <BsFilePdf />
+              {['jpg', 'jpeg', 'png'].includes((hymn.pdfFormat || '').toLowerCase())
+                ? <FiImage />
+                : <BsFilePdf />}
             </div>
             <div className="pdf-info">
               <p className="pdf-title">{hymn.title} — Sheet Music</p>
               <p className="pdf-subtitle">
-                {hymn.pdfUrl ? 'PDF available for preview and download' : 'No sheet music uploaded yet'}
+                {hymn.pdfUrl
+                  ? `${hymn.pdfOriginalName || 'Sheet music'} available`
+                  : 'No sheet music uploaded yet'}
               </p>
             </div>
             {hymn.pdfUrl ? (
               <div className="pdf-actions">
                 <a href={hymn.pdfUrl} target="_blank" rel="noreferrer" className="pdf-btn primary">
-                  <FiExternalLink /> Open PDF
+                  <FiEye /> Preview
                 </a>
-                <a href={hymn.pdfUrl} download={hymn.pdfOriginalName || `${hymn.title} Sheet Music.pdf`} className="pdf-btn secondary">
+                <button
+                  type="button"
+                  className="pdf-btn secondary"
+                  onClick={() => triggerDownload(
+                    hymn.pdfUrl,
+                    hymn.pdfOriginalName || `${hymn.title} Sheet Music`
+                  )}
+                >
                   <FiDownload /> Download
-                </a>
+                </button>
               </div>
             ) : (
               <p className="pdf-no-file">Not yet available</p>
             )}
           </div>
-
-          {hymn.pdfUrl && (
-            <div className="pdf-preview-wrap">
-              {['jpg', 'jpeg', 'png'].includes((hymn.pdfFormat || '').toLowerCase()) ? (
-                <img
-                  src={hymn.pdfUrl}
-                  alt={`${hymn.title} Sheet Music`}
-                  className="sheet-music-img"
-                  loading="lazy"
-                />
-              ) : (
-                <iframe
-                  src={hymn.pdfUrl}
-                  className="pdf-iframe"
-                  title={`${hymn.title} Sheet Music`}
-                  loading="lazy"
-                />
-              )}
-              <p className="pdf-preview-hint">
-                Preview not showing?{' '}
-                <a href={hymn.pdfUrl} target="_blank" rel="noreferrer">Open directly</a>
-              </p>
-            </div>
-          )}
         </motion.div>
 
         {/* Voice Tracks */}

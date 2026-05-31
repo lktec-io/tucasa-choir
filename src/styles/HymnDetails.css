@@ -190,16 +190,19 @@
 }
 
 .pdf-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: var(--space-sm);
   font-size: 0.85rem;
   font-weight: 600;
+  font-family: var(--font-main);
   padding: 10px 20px;
   border-radius: var(--border-radius-full);
+  border: none;
   transition: all var(--transition-fast);
   cursor: pointer;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .pdf-btn.primary {
@@ -231,46 +234,6 @@
   font-style: italic;
 }
 
-/* PDF inline preview */
-.pdf-preview-wrap {
-  margin-top: var(--space-md);
-  border-radius: var(--border-radius-lg);
-  overflow: hidden;
-  border: 1px solid var(--glass-border);
-  background: var(--color-bg-secondary);
-  transition: border-color 0.3s ease, background 0.3s ease;
-  box-shadow: var(--shadow-card);
-}
-
-.pdf-iframe {
-  width: 100%;
-  height: 720px;
-  display: block;
-  border: none;
-  background: transparent;
-}
-
-.sheet-music-img {
-  width: 100%;
-  display: block;
-  object-fit: contain;
-  max-height: 880px;
-  background: var(--color-bg-secondary);
-}
-
-.pdf-preview-hint {
-  font-size: 0.78rem;
-  color: var(--color-text-dim);
-  text-align: center;
-  padding: 10px var(--space-md);
-  border-top: 1px solid var(--glass-border);
-}
-
-.pdf-preview-hint a {
-  color: var(--color-accent);
-  text-decoration: underline;
-  font-weight: 500;
-}
 
 /* Voice tracks grid */
 .tracks-grid {
@@ -314,14 +277,6 @@
     justify-content: center;
   }
 
-  .pdf-iframe {
-    height: 480px;
-  }
-
-  .sheet-music-img {
-    max-height: 600px;
-  }
-
   .tracks-grid {
     grid-template-columns: 1fr;
   }
@@ -332,11 +287,4 @@
     padding-top: calc(60px + var(--space-xl));
   }
 
-  .pdf-iframe {
-    height: 360px;
-  }
-
-  .sheet-music-img {
-    max-height: 420px;
-  }
 }
