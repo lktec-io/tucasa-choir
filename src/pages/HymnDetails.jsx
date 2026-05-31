@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { doc, getDoc, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { FiArrowLeft, FiMusic, FiCalendar, FiHeadphones, FiDownload, FiEye, FiExternalLink } from 'react-icons/fi';
+import { FiArrowLeft, FiMusic, FiCalendar, FiHeadphones, FiDownload, FiExternalLink } from 'react-icons/fi';
 import { BsFilePdf } from 'react-icons/bs';
 import { db } from '../firebase/config';
-import { getPdfDownloadUrl } from '../services/cloudinary';
+import { downloadFile } from '../services/storage';
 import AudioTrackCard from '../components/AudioTrackCard';
 import { Loader } from '../components/Loader';
 import EmptyState from '../components/EmptyState';
@@ -127,9 +127,13 @@ export default function HymnDetails() {
                 <a href={hymn.pdfUrl} target="_blank" rel="noreferrer" className="pdf-btn primary">
                   <FiExternalLink /> Open PDF
                 </a>
-                <a href={getPdfDownloadUrl(hymn.pdfUrl)} className="pdf-btn secondary">
+                <button
+                  type="button"
+                  className="pdf-btn secondary"
+                  onClick={() => downloadFile(hymn.pdfUrl, hymn.pdfOriginalName || `${hymn.title} Sheet Music.pdf`)}
+                >
                   <FiDownload /> Download
-                </a>
+                </button>
               </div>
             ) : (
               <p className="pdf-no-file">Not yet available</p>
@@ -139,11 +143,10 @@ export default function HymnDetails() {
           {hymn.pdfUrl && (
             <div className="pdf-preview-wrap">
               <iframe
-                src={`https://docs.google.com/viewer?url=${encodeURIComponent(hymn.pdfUrl)}&embedded=true`}
+                src={hymn.pdfUrl}
                 className="pdf-iframe"
                 title={`${hymn.title} Sheet Music`}
                 loading="lazy"
-                allowFullScreen
               />
               <p className="pdf-preview-hint">
                 Preview not showing?{' '}
