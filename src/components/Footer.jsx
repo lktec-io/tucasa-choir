@@ -50,10 +50,22 @@ export default function Footer() {
             <a href="#" className="footer-social-btn" aria-label="Facebook">
               <FiFacebook />
             </a>
-            <a href="#" className="footer-social-btn" aria-label="Instagram">
+            <a
+              href="https://www.instagram.com/tucasa_tia_dsm_choir?igsh=OGZrNHF5NGdlMzRv"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="footer-social-btn"
+              aria-label="Instagram"
+            >
               <FiInstagram />
             </a>
-            <a href="#" className="footer-social-btn" aria-label="YouTube">
+            <a
+              href="https://youtube.com/@tucasatiambeyachoir?si=IGHOv1Hjnqy9jboz"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="footer-social-btn"
+              aria-label="YouTube"
+            >
               <FiYoutube />
             </a>
           </div>

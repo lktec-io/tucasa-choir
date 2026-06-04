@@ -417,15 +417,15 @@ function ManageHymnModal({ hymn, onClose }) {
 }
 
 /* ─── Dashboard View ─────────────────────────────────────────────── */
-function DashboardView({ hymns }) {
+function DashboardView({ hymns, onNavigate }) {
   const totalTracks = hymns.reduce((s, h) => s + (h.trackCount || 0), 0);
   const withPdf = hymns.filter(h => h.pdfUrl).length;
 
   const stats = [
-    { icon: <FiBookOpen />, color: 'green',  num: hymns.length, label: 'Total Hymns' },
-    { icon: <FiHeadphones />, color: 'blue', num: totalTracks,  label: 'Audio Tracks' },
-    { icon: <BsFilePdf />,   color: 'orange',num: withPdf,      label: 'With PDF' },
-    { icon: <FiUsers />,     color: 'red',   num: 4,            label: 'Voice Parts' },
+    { icon: <FiBookOpen />, color: 'green',  num: hymns.length, label: 'Total Hymns',  view: 'manage' },
+    { icon: <FiHeadphones />, color: 'blue', num: totalTracks,  label: 'Audio Tracks', view: 'manage' },
+    { icon: <BsFilePdf />,   color: 'orange',num: withPdf,      label: 'With PDF',     view: 'manage' },
+    { icon: <FiUsers />,     color: 'red',   num: 4,            label: 'Voice Parts',  view: null },
   ];
 
   return (
@@ -434,10 +434,14 @@ function DashboardView({ hymns }) {
         {stats.map((s, i) => (
           <motion.div
             key={i}
-            className="admin-stat-card"
+            className={`admin-stat-card${s.view ? ' clickable' : ''}`}
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.07 }}
+            onClick={() => s.view && onNavigate(s.view)}
+            role={s.view ? 'button' : undefined}
+            tabIndex={s.view ? 0 : undefined}
+            onKeyDown={s.view ? (e) => e.key === 'Enter' && onNavigate(s.view) : undefined}
           >
             <div className={`admin-stat-icon ${s.color}`}>{s.icon}</div>
             <div className="admin-stat-info">
@@ -451,6 +455,11 @@ function DashboardView({ hymns }) {
       <div className="admin-panel">
         <div className="admin-panel-header">
           <h3 className="admin-panel-title">Recent Hymns</h3>
+          {hymns.length > 0 && (
+            <button type="button" className="admin-panel-view-all" onClick={() => onNavigate('manage')}>
+              View all <FiChevronRight />
+            </button>
+          )}
         </div>
         <div className="admin-panel-body">
           {hymns.length === 0 ? (
@@ -461,7 +470,12 @@ function DashboardView({ hymns }) {
           ) : (
             <div className="admin-hymns-list">
               {hymns.slice(0, 6).map(h => (
-                <div key={h.id} className="admin-hymn-item">
+                <button
+                  key={h.id}
+                  type="button"
+                  className="admin-hymn-item clickable"
+                  onClick={() => onNavigate('manage', h.id)}
+                >
                   <div className="admin-hymn-item-icon"><FiMusic /></div>
                   <div className="admin-hymn-item-info">
                     <div className="admin-hymn-item-title">{h.title}</div>
@@ -470,7 +484,8 @@ function DashboardView({ hymns }) {
                       {h.pdfUrl && <span className="badge-pdf">PDF</span>}
                     </div>
                   </div>
-                </div>
+                  <FiChevronRight className="admin-hymn-item-arrow" />
+                </button>
               ))}
             </div>
           )}
@@ -553,13 +568,26 @@ function AddHymnView({ onAdded }) {
 }
 
 /* ─── Manage Hymns View ──────────────────────────────────────────── */
-function ManageHymnsView({ hymns }) {
+function ManageHymnsView({ hymns, highlightId }) {
   const [managingHymn, setManagingHymn] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(null);
+  const itemRefs = useRef({});
+
+  useEffect(() => {
+    if (!highlightId) return;
+    const el = itemRefs.current[highlightId];
+    if (el) {
+      setTimeout(() => {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('highlighted');
+        setTimeout(() => el.classList.remove('highlighted'), 2200);
+      }, 180);
+    }
+  }, [highlightId]);
 
   const startEdit = (hymn) => {
     setEditingId(hymn.id);
@@ -616,7 +644,11 @@ function ManageHymnsView({ hymns }) {
           ) : (
             <div className="admin-hymns-list">
               {hymns.map(hymn => (
-                <div key={hymn.id} className={`admin-hymn-item${editingId === hymn.id ? ' editing' : ''}`}>
+                <div
+                  key={hymn.id}
+                  ref={el => { if (el) itemRefs.current[hymn.id] = el; }}
+                  className={`admin-hymn-item${editingId === hymn.id ? ' editing' : ''}`}
+                >
                   {editingId === hymn.id ? (
                     <div className="admin-hymn-edit-form">
                       <div className="form-group">
@@ -774,10 +806,17 @@ const TITLE_MAP = {
 };
 
 export default function Admin() {
-  const [user, setUser]             = useState(undefined);
-  const [activeView, setActiveView] = useState('dashboard');
+  const [user, setUser]               = useState(undefined);
+  const [activeView, setActiveView]   = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [hymns, setHymns]           = useState([]);
+  const [hymns, setHymns]             = useState([]);
+  const [highlightHymnId, setHighlightHymnId] = useState(null);
+
+  const navigateTo = (view, hymnId = null) => {
+    setHighlightHymnId(hymnId);
+    setActiveView(view);
+    setSidebarOpen(false);
+  };
 
   useEffect(() => onAuthStateChanged(auth, u => setUser(u || null)), []);
 
@@ -802,7 +841,7 @@ export default function Admin() {
     <div className="admin-layout">
       <Sidebar
         activeView={activeView}
-        onNavigate={setActiveView}
+        onNavigate={(view) => navigateTo(view)}
         onLogout={() => { signOut(auth); toast.success('Signed out.'); }}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -839,9 +878,9 @@ export default function Admin() {
               exit={{ opacity: 0, y: -14 }}
               transition={{ duration: 0.22 }}
             >
-              {activeView === 'dashboard' && <DashboardView hymns={hymns} />}
-              {activeView === 'add'       && <AddHymnView onAdded={() => setActiveView('manage')} />}
-              {activeView === 'manage'    && <ManageHymnsView hymns={hymns} />}
+              {activeView === 'dashboard' && <DashboardView hymns={hymns} onNavigate={navigateTo} />}
+              {activeView === 'add'       && <AddHymnView onAdded={() => navigateTo('manage')} />}
+              {activeView === 'manage'    && <ManageHymnsView hymns={hymns} highlightId={highlightHymnId} />}
               {activeView === 'settings'  && <SettingsView user={user} />}
             </motion.div>
           </AnimatePresence>
