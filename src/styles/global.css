@@ -6,12 +6,57 @@
   margin: 0;
   padding: 0;
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
 }
 
-*:focus,
-*:active {
+/* Remove ALL default browser focus outlines (mouse + touch) */
+*:focus {
+  outline: none;
+}
+
+/* Keyboard navigation only — clean custom ring instead of blue browser default */
+*:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Suppress tap highlights on every interactive element explicitly */
+button,
+a,
+input,
+textarea,
+select,
+[role="button"],
+[role="tab"],
+[tabindex] {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+/* Remove focus on all interactive elements (mouse/touch) */
+button:focus,
+a:focus,
+input:focus,
+textarea:focus,
+select:focus,
+[role="button"]:focus,
+[tabindex]:focus {
   outline: none;
   box-shadow: none;
+}
+
+/* Smooth interaction feel on all clickable elements */
+button,
+a,
+[role="button"] {
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+button:active,
+a:active,
+[role="button"]:active {
+  transform: scale(0.97);
 }
 
 html {
@@ -49,6 +94,7 @@ button {
   border: none;
   background: none;
   font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
 }
 
 img {

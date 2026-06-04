@@ -157,7 +157,9 @@
   box-sizing: border-box;
 }
 
-.form-input:focus {
+.form-input:focus,
+.form-input:focus-visible {
+  outline: none;
   border-color: var(--color-accent);
   background: rgba(76,175,125,0.05);
   box-shadow: 0 0 0 3px rgba(76,175,125,0.12);
@@ -182,7 +184,9 @@
   box-sizing: border-box;
 }
 
-.form-textarea:focus {
+.form-textarea:focus,
+.form-textarea:focus-visible {
+  outline: none;
   border-color: var(--color-accent);
   background: rgba(76,175,125,0.05);
   box-shadow: 0 0 0 3px rgba(76,175,125,0.12);
