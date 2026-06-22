@@ -7,6 +7,8 @@ import ScrollToTop from './components/ScrollToTop';
 import Home from './pages/Home';
 import HymnDetails from './pages/HymnDetails';
 import Admin from './pages/Admin';
+import AttendanceAdmin from './pages/AttendanceAdmin';
+import AttendancePortal from './pages/AttendancePortal';
 import './styles/global.css';
 
 export default function App() {
@@ -42,8 +44,9 @@ export default function App() {
         }}
       />
       <Routes>
-        {/* Admin route — no public navbar/footer */}
+        {/* Admin routes — no public navbar/footer */}
         <Route path="/admin" element={<Admin />} />
+        <Route path="/admin/attendance" element={<AttendanceAdmin />} />
 
         {/* Public routes */}
         <Route
@@ -55,6 +58,7 @@ export default function App() {
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/hymn/:id" element={<HymnDetails />} />
+                  <Route path="/attendance" element={<AttendancePortal />} />
                 </Routes>
               </main>
               <Footer />

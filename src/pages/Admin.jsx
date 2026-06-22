@@ -11,11 +11,12 @@ import {
   validateAudioFile, validatePDFFile, formatFileSize
 } from '../services/cloudinary';
 import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 import {
   FiMail, FiLock, FiLogOut, FiMenu, FiX, FiHome, FiPlus,
   FiList, FiSettings, FiMusic, FiUpload, FiTrash2, FiEdit3,
   FiEye, FiHeadphones, FiUsers, FiBookOpen, FiAlertCircle,
-  FiChevronRight
+  FiChevronRight, FiCalendar
 } from 'react-icons/fi';
 import { BsFilePdf } from 'react-icons/bs';
 import '../styles/Admin.css';
@@ -758,6 +759,7 @@ const NAV = [
 ];
 
 function Sidebar({ activeView, onNavigate, onLogout, open, onClose }) {
+  const navigate = useNavigate();
   return (
     <>
       <div
@@ -787,6 +789,15 @@ function Sidebar({ activeView, onNavigate, onLogout, open, onClose }) {
               {item.label}
             </button>
           ))}
+          <p className="sidebar-nav-label" style={{ marginTop: '12px' }}>Modules</p>
+          <button
+            type="button"
+            className="sidebar-nav-item"
+            onClick={() => { onClose(); navigate('/admin/attendance'); }}
+          >
+            <span className="sidebar-nav-icon"><FiCalendar /></span>
+            Attendance
+          </button>
         </nav>
 
         <div className="sidebar-footer">
