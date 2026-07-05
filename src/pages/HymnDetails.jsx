@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { doc, getDoc, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
@@ -6,6 +6,7 @@ import { FiArrowLeft, FiMusic, FiCalendar, FiHeadphones, FiDownload, FiEye, FiIm
 import { BsFilePdf } from 'react-icons/bs';
 import { db } from '../firebase/config';
 import AudioTrackCard from '../components/AudioTrackCard';
+import ChoirPlayer from '../components/ChoirPlayer';
 import { Loader } from '../components/Loader';
 import EmptyState from '../components/EmptyState';
 import '../styles/HymnDetails.css';
@@ -38,6 +39,9 @@ export default function HymnDetails() {
   const [loading, setLoading] = useState(true);
   const [tracksLoading, setTracksLoading] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
+  // Cross-component sync: incrementing stops the target group
+  const [cardStopSignal,  setCardStopSignal]  = useState(0);
+  const [choirStopSignal, setChoirStopSignal] = useState(0);
 
   const closePreview = useCallback(() => setShowPreview(false), []);
 
@@ -259,11 +263,28 @@ export default function HymnDetails() {
               />
             </div>
           ) : (
-            <div className="tracks-grid">
-              {tracks.map((track, i) => (
-                <AudioTrackCard key={track.id} track={track} index={i} />
-              ))}
-            </div>
+            <>
+              {/* Choir Mix player — shown whenever there is at least one track */}
+              <ChoirPlayer
+                key={tracks.map(t => t.id).join(',')}
+                tracks={tracks}
+                stopSignal={choirStopSignal}
+                stopOthers={() => setCardStopSignal(s => s + 1)}
+              />
+
+              {/* Individual track cards */}
+              <div className="tracks-grid">
+                {tracks.map((track, i) => (
+                  <AudioTrackCard
+                    key={track.id}
+                    track={track}
+                    index={i}
+                    stopSignal={cardStopSignal}
+                    onPlay={() => setChoirStopSignal(s => s + 1)}
+                  />
+                ))}
+              </div>
+            </>
           )}
         </motion.div>
 

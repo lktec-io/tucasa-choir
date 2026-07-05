@@ -28,7 +28,7 @@ function formatTime(seconds) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export default function AudioTrackCard({ track, index = 0 }) {
+export default function AudioTrackCard({ track, index = 0, stopSignal = 0, onPlay }) {
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -61,12 +61,27 @@ export default function AudioTrackCard({ track, index = 0 }) {
     };
   }, []);
 
+  // Stop this card when choir player starts
+  const isFirstSignal = useRef(true);
+  useEffect(() => {
+    if (isFirstSignal.current) { isFirstSignal.current = false; return; }
+    const audio = audioRef.current;
+    if (audio && playing) {
+      audio.pause();
+      audio.currentTime = 0;
+      setPlaying(false);
+      setCurrentTime(0);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stopSignal]);
+
   const togglePlay = () => {
     const audio = audioRef.current;
     if (!audio) return;
     if (playing) {
       audio.pause();
     } else {
+      onPlay?.(); // tell choir player to stop
       audio.play();
     }
     setPlaying(v => !v);
