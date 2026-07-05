@@ -3,8 +3,6 @@ import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 
-console.log(getAuth().currentUser);
-
 const firebaseConfig = {
   apiKey: "AIzaSyCs3M2RIeJvKzIxch8S0gMA4k6YZmjUEz4",
   authDomain: "tucasa-hyms.firebaseapp.com",
