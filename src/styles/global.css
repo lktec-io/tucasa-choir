@@ -1,87 +1,42 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
 @import './variables.css';
+@import './components.css';
 
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  -webkit-tap-highlight-color: transparent;
-  -webkit-touch-callout: none;
-}
-
-/* Remove ALL default browser focus outlines (mouse + touch) */
-*:focus {
-  outline: none;
-}
-
-/* Keyboard navigation only — clean custom ring instead of blue browser default */
-*:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-/* Suppress tap highlights on every interactive element explicitly */
-button,
-a,
-input,
-textarea,
-select,
-[role="button"],
-[role="tab"],
-[tabindex] {
-  -webkit-tap-highlight-color: transparent;
-  -webkit-touch-callout: none;
-}
-
-/* Remove focus on all interactive elements (mouse/touch) */
-button:focus,
-a:focus,
-input:focus,
-textarea:focus,
-select:focus,
-[role="button"]:focus,
-[tabindex]:focus {
-  outline: none;
-  box-shadow: none;
-}
-
-/* Smooth interaction feel on all clickable elements */
-button,
-a,
-[role="button"] {
-  transition: opacity var(--transition-fast), transform var(--transition-fast);
-}
-
-button:active,
-a:active,
-[role="button"]:active {
-  transform: scale(0.97);
 }
 
 html {
-  scroll-behavior: smooth;
   font-size: 16px;
-  overflow-x: hidden;
-  transition: background-color 0.3s ease;
+  scroll-behavior: smooth;
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  font-family: var(--font-main);
+  font-family: var(--font-sans);
+  font-weight: var(--weight-regular);
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
   background-color: var(--color-bg);
   color: var(--color-text);
-  line-height: 1.6;
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: var(--transition-theme);
 }
 
 #root {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+h1, h2, h3, h4 {
+  font-weight: var(--weight-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: -0.01em;
 }
 
 a {
@@ -93,8 +48,12 @@ button {
   cursor: pointer;
   border: none;
   background: none;
-  font-family: inherit;
-  -webkit-tap-highlight-color: transparent;
+  color: inherit;
+}
+
+button, input, select, textarea, optgroup {
+  font: inherit;
+  color: inherit;
 }
 
 img {
@@ -102,189 +61,128 @@ img {
   display: block;
 }
 
-input, textarea, select {
-  font-family: inherit;
-}
-
 ul, ol {
   list-style: none;
 }
 
-/* Scrollbar styling */
+/* A visible ring for keyboard users on every interactive element */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+::selection {
+  background: var(--color-selection);
+}
+
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-bg);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-primary-light);
-  border-radius: 3px;
+  background: var(--color-border-strong);
+  border-radius: var(--radius-sm);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-accent);
+/* Keep anchored sections clear of the fixed navbar */
+[id] {
+  scroll-margin-top: calc(var(--navbar-height) + var(--space-4));
 }
 
-/* Selection */
-::selection {
-  background: var(--color-accent-glow);
-  color: var(--color-text-white);
+.skip-link {
+  position: fixed;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: var(--z-toast);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border-radius: var(--radius-md);
+  font-weight: var(--weight-medium);
+  transform: translateY(-200%);
 }
 
-/* Glass utility */
-.glass {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
+.skip-link:focus {
+  transform: none;
 }
 
-/* Container */
 .container {
   width: 100%;
-  max-width: 1200px;
+  max-width: var(--content-width);
   margin: 0 auto;
-  padding: 0 var(--space-lg);
+  padding: 0 var(--gutter);
 }
 
-/* Page wrapper */
 .page-wrapper {
   flex: 1;
-  padding-top: 70px;
+  padding-top: var(--navbar-height);
 }
 
-/* Gradient text */
-.gradient-text {
-  background: var(--gradient-accent);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.page-wrapper:focus-visible {
+  outline: none;
 }
 
-/* Responsive grid */
+/* Numeric and data text */
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
 .hymns-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: var(--space-lg);
-}
-
-/* Keyframe animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fadeInScale {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-30px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(30px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+  gap: var(--space-4);
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
-@keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  33% { transform: translateY(-15px) rotate(5deg); }
-  66% { transform: translateY(-8px) rotate(-3deg); }
-}
-
-@keyframes floatAlt {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  33% { transform: translateY(-20px) rotate(-5deg); }
-  66% { transform: translateY(-10px) rotate(4deg); }
-}
-
-@keyframes glowPulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(76, 175, 125, 0.2); }
-  50% { box-shadow: 0 0 40px rgba(76, 175, 125, 0.4); }
-}
-
-@keyframes waveform {
-  0%, 100% { transform: scaleY(0.3); }
-  50% { transform: scaleY(1); }
-}
-
-@keyframes noteFloat {
-  0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 0.7; }
-  50% { transform: translateY(-60px) rotate(15deg) scale(1.1); opacity: 0.4; }
-  100% { transform: translateY(-120px) rotate(30deg) scale(0.8); opacity: 0; }
-}
-
-@keyframes counterUp {
-  from { transform: translateY(10px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-@keyframes menuSlideDown {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* Skeleton loader animation */
-@keyframes skeletonShimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
 }
 
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--color-surface) 25%,
-    var(--color-surface-strong) 50%,
-    var(--color-surface) 75%
-  );
-  background-size: 200% 100%;
-  animation: skeletonShimmer 1.5s infinite;
-  border-radius: var(--border-radius-sm);
+  background: var(--color-surface-sunken);
+  border-radius: var(--radius-sm);
+  animation: skeletonPulse 1.4s ease-in-out infinite;
 }
 
-/* Progress bar */
 .progress-bar-track {
   width: 100%;
-  height: 4px;
-  background: var(--color-surface);
-  border-radius: 2px;
+  height: 6px;
+  background: var(--color-surface-sunken);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .progress-bar-fill {
   height: 100%;
-  background: var(--gradient-accent);
-  border-radius: 2px;
-  transition: width 0.1s linear;
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
+  transition: width 100ms linear;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .container {
-    padding: 0 var(--space-md);
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 
-  .hymns-grid {
-    grid-template-columns: 1fr;
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

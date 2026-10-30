@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { FiMusic, FiInstagram, FiYoutube, FiFacebook } from 'react-icons/fi';
+import { FiInstagram, FiYoutube } from 'react-icons/fi';
+import { BsWhatsapp } from 'react-icons/bs';
 import '../styles/Footer.css';
 
 export default function Footer() {
@@ -9,67 +10,54 @@ export default function Footer() {
         <div className="footer-grid">
           <div className="footer-brand">
             <div className="footer-logo">
-              <div className="footer-logo-icon">
-                <FiMusic />
-              </div>
+              <img className="footer-logo-img" src="/logo-96.jpg" alt="" width="44" height="44" loading="lazy" />
               <div>
-                <div className="footer-logo-title">TUCASA TIA</div>
+                <div className="footer-logo-title">TUCASA TIA Mbeya</div>
                 <div className="footer-logo-subtitle">Choir Hymns Library</div>
               </div>
             </div>
             <p className="footer-desc">
-              The ultimate sacred music practice companion. Access professional guide tracks, hymn sheets, and voice-part recordings — anytime, anywhere.
+              A sacred music practice companion. Access guide tracks, hymn sheets, and voice-part recordings — anytime, anywhere.
             </p>
           </div>
 
           <div>
-            <h4 className="footer-col-title">Quick Links</h4>
+            <h2 className="footer-col-title">Explore</h2>
             <div className="footer-links">
               <Link to="/">Home</Link>
-              <a href="#hymns">Hymn Library</a>
-              <a href="#support">Support</a>
+              <Link to="/#hymns">Hymn Library</Link>
+              <Link to="/attendance">My Attendance</Link>
+              <Link to="/#support">Support</Link>
             </div>
           </div>
 
           <div>
-            <h4 className="footer-col-title">Resources</h4>
+            <h2 className="footer-col-title">Connect</h2>
             <div className="footer-links">
-              <a href="#hymns">Browse Hymns</a>
-              <a href="#support">Contact Us</a>
+              <a href="https://wa.me/255755298196" target="_blank" rel="noreferrer">
+                <BsWhatsapp /> WhatsApp
+              </a>
+              <a
+                href="https://www.instagram.com/tucasa_tia_dsm_choir?igsh=OGZrNHF5NGdlMzRv"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <FiInstagram /> Instagram
+              </a>
+              <a
+                href="https://youtube.com/@tucasatiambeyachoir?si=IGHOv1Hjnqy9jboz"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <FiYoutube /> YouTube
+              </a>
             </div>
           </div>
         </div>
 
-        <div className="footer-divider" />
-
-        <div className="footer-bottom">
-          <p className="footer-copy">
-            &copy; {new Date().getFullYear()} <span>TUCASA TIA Choir</span>. All rights reserved.
-          </p>
-          <div className="footer-socials">
-            <a href="#" className="footer-social-btn" aria-label="Facebook">
-              <FiFacebook />
-            </a>
-            <a
-              href="https://www.instagram.com/tucasa_tia_dsm_choir?igsh=OGZrNHF5NGdlMzRv"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="footer-social-btn"
-              aria-label="Instagram"
-            >
-              <FiInstagram />
-            </a>
-            <a
-              href="https://youtube.com/@tucasatiambeyachoir?si=IGHOv1Hjnqy9jboz"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="footer-social-btn"
-              aria-label="YouTube"
-            >
-              <FiYoutube />
-            </a>
-          </div>
-        </div>
+        <p className="footer-copy">
+          &copy; <span className="num">{new Date().getFullYear()}</span> TUCASA TIA Choir. All rights reserved.
+        </p>
       </div>
     </footer>
   );

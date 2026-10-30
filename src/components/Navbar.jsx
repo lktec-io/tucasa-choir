@@ -1,70 +1,83 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FiMusic, FiSun, FiMoon, FiMenu, FiX } from 'react-icons/fi';
+import { FiSun, FiMoon, FiMenu, FiX } from 'react-icons/fi';
 import '../styles/Navbar.css';
 
+const LINKS = [
+  { to: '/', label: 'Home' },
+  { to: '/#hymns', label: 'Hymns' },
+  { to: '/attendance', label: 'My Attendance' },
+  { to: '/#support', label: 'Support' },
+];
+
 export default function Navbar({ theme, onToggleTheme }) {
-  const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  const current = location.pathname + location.hash;
 
   useEffect(() => {
     setMenuOpen(false);
   }, [location]);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
+
+  const renderLinks = () => LINKS.map(link => (
+    <Link
+      key={link.to}
+      to={link.to}
+      className={`navbar-link${current === link.to ? ' active' : ''}`}
+      aria-current={current === link.to ? 'page' : undefined}
+    >
+      {link.label}
+    </Link>
+  ));
+
   return (
-    <>
-      <nav className={`navbar${scrolled ? ' scrolled' : ''}`}>
-        <div className="navbar-inner">
-          <Link to="/" className="navbar-logo">
-            <div className="navbar-logo-icon">
-              <FiMusic />
-            </div>
-            <div className="navbar-logo-text">
-              <span className="navbar-logo-title">TUCASA TIA</span>
-              <span className="navbar-logo-subtitle">Choir Hymns Library</span>
-            </div>
-          </Link>
+    <header className="navbar">
+      <div className="navbar-inner">
+        <Link to="/" className="navbar-logo">
+          <img className="navbar-logo-img" src="/logo-96.jpg" alt="" width="40" height="40" />
+          <span className="navbar-logo-text">
+            <span className="navbar-logo-title">TUCASA TIA Mbeya</span>
+            <span className="navbar-logo-subtitle">Choir Hymns Library</span>
+          </span>
+        </Link>
 
-          <div className="navbar-links">
-            <Link to="/" className="navbar-link">Home</Link>
-            <a href="#hymns" className="navbar-link">Hymns</a>
-            <a href="#support" className="navbar-link">Support</a>
-          </div>
+        <nav className="navbar-links" aria-label="Main">
+          {renderLinks()}
+        </nav>
 
-          <div className="navbar-actions">
-            <button
-              className="theme-toggle-btn"
-              onClick={onToggleTheme}
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? <FiSun /> : <FiMoon />}
-            </button>
+        <div className="navbar-actions">
+          <button
+            type="button"
+            className="btn btn-secondary btn-icon"
+            onClick={onToggleTheme}
+            aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+          >
+            {theme === 'dark' ? <FiSun /> : <FiMoon />}
+          </button>
 
-            <button
-              className={`hamburger${menuOpen ? ' open' : ''}`}
-              onClick={() => setMenuOpen(v => !v)}
-              aria-label="Toggle menu"
-            >
-              <span />
-              <span />
-              <span />
-            </button>
-          </div>
+          <button
+            type="button"
+            className="btn btn-secondary btn-icon navbar-menu-btn"
+            onClick={() => setMenuOpen(v => !v)}
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-menu"
+          >
+            {menuOpen ? <FiX /> : <FiMenu />}
+          </button>
         </div>
-      </nav>
-
-      <div className={`mobile-menu${menuOpen ? ' open' : ''}`}>
-        <Link to="/" className="navbar-link">Home</Link>
-        <a href="#hymns" className="navbar-link">Hymns</a>
-        <a href="#support" className="navbar-link">Support</a>
       </div>
-    </>
+
+      <nav id="mobile-menu" className={`mobile-menu${menuOpen ? ' open' : ''}`} aria-label="Mobile">
+        {renderLinks()}
+      </nav>
+    </header>
   );
 }

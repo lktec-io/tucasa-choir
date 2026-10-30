@@ -1,25 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FiPlay, FiPause, FiDownload } from 'react-icons/fi';
+import { FiPlay, FiPause, FiDownload, FiAlertCircle } from 'react-icons/fi';
+import { voiceKey, voiceLetter } from '../utils/voice';
 import '../styles/AudioTrackCard.css';
-
-function getVoiceClass(title = '') {
-  const t = title.toLowerCase();
-  if (t.includes('soprano')) return 'soprano';
-  if (t.includes('alto')) return 'alto';
-  if (t.includes('tenor')) return 'tenor';
-  if (t.includes('bass')) return 'bass';
-  return 'default';
-}
-
-function getVoiceLabel(title = '') {
-  const t = title.toLowerCase();
-  if (t.includes('soprano')) return 'S';
-  if (t.includes('alto')) return 'A';
-  if (t.includes('tenor')) return 'T';
-  if (t.includes('bass')) return 'B';
-  return '♪';
-}
 
 function formatTime(seconds) {
   if (isNaN(seconds) || seconds === Infinity) return '0:00';
@@ -33,9 +16,10 @@ export default function AudioTrackCard({ track, index = 0, stopSignal = 0, onPla
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [failed, setFailed] = useState(false);
 
-  const voiceClass = getVoiceClass(track.title);
-  const voiceLabel = getVoiceLabel(track.title);
+  const voiceClass = voiceKey(track.title);
+  const voiceLabel = voiceLetter(track.title);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -47,17 +31,23 @@ export default function AudioTrackCard({ track, index = 0, stopSignal = 0, onPla
       setPlaying(false);
       setCurrentTime(0);
     };
+    const onError = () => {
+      setPlaying(false);
+      setFailed(true);
+    };
 
     audio.addEventListener('timeupdate', onTimeUpdate);
     audio.addEventListener('durationchange', onDurationChange);
     audio.addEventListener('loadedmetadata', onDurationChange);
     audio.addEventListener('ended', onEnded);
+    audio.addEventListener('error', onError);
 
     return () => {
       audio.removeEventListener('timeupdate', onTimeUpdate);
       audio.removeEventListener('durationchange', onDurationChange);
       audio.removeEventListener('loadedmetadata', onDurationChange);
       audio.removeEventListener('ended', onEnded);
+      audio.removeEventListener('error', onError);
     };
   }, []);
 
@@ -82,81 +72,85 @@ export default function AudioTrackCard({ track, index = 0, stopSignal = 0, onPla
       audio.pause();
     } else {
       onPlay?.(); // tell choir player to stop
-      audio.play();
+      audio.play().catch(() => setPlaying(false));
     }
     setPlaying(v => !v);
   };
 
   const seek = (e) => {
     const audio = audioRef.current;
-    if (!audio || !duration) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const ratio = Math.max(0, Math.min(1, x / rect.width));
-    audio.currentTime = ratio * duration;
-    setCurrentTime(ratio * duration);
+    if (!audio) return;
+    const t = Number(e.target.value);
+    audio.currentTime = t;
+    setCurrentTime(t);
   };
 
-  const progress = duration ? (currentTime / duration) * 100 : 0;
+  const safeDuration = Number.isFinite(duration) ? duration : 0;
+  const progress = safeDuration ? (currentTime / safeDuration) * 100 : 0;
 
   return (
     <motion.div
       className={`audio-track-card${playing ? ' playing' : ''}`}
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.08 }}
+      transition={{ duration: 0.2, delay: index * 0.03 }}
     >
       <audio ref={audioRef} src={track.audioUrl} preload="metadata" />
 
       <div className="audio-track-card-header">
         <div className="audio-track-voice-badge">
-          <div className={`voice-icon ${voiceClass}`}>{voiceLabel}</div>
-          <div>
+          <div className={`voice-tile voice-fill ${voiceClass}`} aria-hidden="true">{voiceLabel}</div>
+          <div className="audio-track-text">
             <div className="audio-track-title">{track.title}</div>
-            <div className="audio-track-duration">{formatTime(duration)}</div>
+            <div className="audio-track-duration num">{playing ? 'Playing' : formatTime(duration)}</div>
           </div>
         </div>
 
         <a
           href={track.audioUrl}
           download
-          className="audio-track-download-btn"
+          className="btn btn-secondary btn-icon btn-sm"
           title="Download track"
+          aria-label={`Download ${track.title}`}
           onClick={e => e.stopPropagation()}
         >
           <FiDownload />
         </a>
       </div>
 
-      {/* Waveform */}
-      <div className={`waveform${playing ? ' active' : ''}`}>
-        {Array.from({ length: 12 }).map((_, i) => (
-          <div key={i} className="waveform-bar" />
-        ))}
-      </div>
-
-      {/* Player */}
-      <div className="audio-player">
+      {failed ? (
+        <p className="field-error"><FiAlertCircle /> This track could not be loaded.</p>
+      ) : (
         <div className="audio-player-controls">
-          <button className="play-pause-btn" onClick={togglePlay} aria-label={playing ? 'Pause' : 'Play'}>
+          <button
+            type="button"
+            className="btn btn-primary btn-icon"
+            onClick={togglePlay}
+            aria-label={`${playing ? 'Pause' : 'Play'} ${track.title}`}
+          >
             {playing ? <FiPause /> : <FiPlay />}
           </button>
           <div className="audio-progress-wrap">
-            <div
-              className="audio-progress-bar"
-              onClick={seek}
-              role="slider"
-              aria-label="Audio progress"
-            >
-              <div className="audio-progress-fill" style={{ width: `${progress}%` }} />
-            </div>
-            <div className="audio-time-labels">
+            <input
+              type="range"
+              className="range-slider"
+              min={0}
+              max={safeDuration}
+              step={0.1}
+              value={currentTime}
+              onChange={seek}
+              disabled={!safeDuration}
+              aria-label={`Seek ${track.title}`}
+              aria-valuetext={`${formatTime(currentTime)} of ${formatTime(safeDuration)}`}
+              style={{ '--range-pct': `${progress}%` }}
+            />
+            <div className="audio-time-labels num">
               <span>{formatTime(currentTime)}</span>
               <span>{formatTime(duration)}</span>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </motion.div>
   );
 }

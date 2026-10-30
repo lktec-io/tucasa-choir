@@ -4,16 +4,17 @@ import '../styles/SearchBar.css';
 export default function SearchBar({ value, onChange, placeholder = 'Search hymns...' }) {
   return (
     <div className="search-bar-wrap">
-      <FiSearch className="search-bar-icon" />
+      <FiSearch className="search-bar-icon" aria-hidden="true" />
       <input
         type="text"
-        className="search-bar-input"
+        className="form-input with-icon search-bar-input"
         placeholder={placeholder}
+        aria-label={placeholder}
         value={value}
         onChange={e => onChange(e.target.value)}
       />
       {value && (
-        <button className="search-clear-btn" onClick={() => onChange('')} aria-label="Clear search">
+        <button type="button" className="btn btn-tertiary btn-icon btn-sm search-clear-btn" onClick={() => onChange('')} aria-label="Clear search">
           <FiX />
         </button>
       )}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import {
@@ -13,23 +13,17 @@ import {
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import {
-  FiMail, FiLock, FiLogOut, FiMenu, FiX, FiHome, FiPlus,
+  FiMail, FiLock, FiX, FiHome, FiPlus,
   FiList, FiSettings, FiMusic, FiUpload, FiTrash2, FiEdit3,
-  FiEye, FiHeadphones, FiUsers, FiBookOpen, FiAlertCircle,
+  FiEye, FiHeadphones, FiBookOpen, FiAlertCircle,
   FiChevronRight, FiCalendar
 } from 'react-icons/fi';
 import { BsFilePdf } from 'react-icons/bs';
+import AdminShell from '../components/AdminShell';
+import { Loader } from '../components/Loader';
+import { useConfirm } from '../hooks/useConfirm';
+import { voiceKey, voiceLetter } from '../utils/voice';
 import '../styles/Admin.css';
-
-/* ─── Helpers ────────────────────────────────────────────────────── */
-function getVoiceColor(title = '') {
-  const t = title.toLowerCase();
-  if (t.includes('soprano')) return 'linear-gradient(135deg,#ff6b9d,#c44b7d)';
-  if (t.includes('alto'))    return 'linear-gradient(135deg,#f5a623,#e07b10)';
-  if (t.includes('tenor'))   return 'linear-gradient(135deg,#4ecdc4,#2aa198)';
-  if (t.includes('bass'))    return 'linear-gradient(135deg,#4a90e2,#2d6ab4)';
-  return 'var(--gradient-accent)';
-}
 
 /* ─── FileDropZone ───────────────────────────────────────────────── */
 function FileDropZone({ accept, onFile, file, onClear, Icon, label, hint }) {
@@ -51,8 +45,14 @@ function FileDropZone({ accept, onFile, file, onClear, Icon, label, hint }) {
       onDrop={handleDrop}
       onClick={() => !file && inputRef.current?.click()}
       role="button"
+      aria-label={label}
       tabIndex={file ? -1 : 0}
-      onKeyDown={e => e.key === 'Enter' && !file && inputRef.current?.click()}
+      onKeyDown={e => {
+        if ((e.key === 'Enter' || e.key === ' ') && !file) {
+          e.preventDefault();
+          inputRef.current?.click();
+        }
+      }}
     >
       <input
         ref={inputRef}
@@ -69,9 +69,10 @@ function FileDropZone({ accept, onFile, file, onClear, Icon, label, hint }) {
             <span className="file-drop-file-size">{formatFileSize(file.size)}</span>
           </div>
           <button
-            className="file-drop-clear"
+            className="btn btn-danger btn-icon btn-sm"
             onClick={e => { e.stopPropagation(); onClear(); }}
             title="Remove file"
+            aria-label="Remove file"
             type="button"
           >
             <FiX />
@@ -91,10 +92,10 @@ function FileDropZone({ accept, onFile, file, onClear, Icon, label, hint }) {
 /* ─── Upload Progress ────────────────────────────────────────────── */
 function UploadProgress({ progress, label }) {
   return (
-    <div className="upload-progress-wrap">
+    <div className="upload-progress-wrap" role="status">
       <div className="upload-progress-header">
         <span className="upload-progress-label">{label}</span>
-        <span className="upload-progress-pct">{Math.round(progress)}%</span>
+        <span className="upload-progress-pct num">{Math.round(progress)}%</span>
       </div>
       <div className="progress-bar-track">
         <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
@@ -127,26 +128,27 @@ function AuthForm() {
     <div className="admin-auth-page">
       <motion.div
         className="admin-auth-card"
-        initial={{ opacity: 0, scale: 0.94, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
       >
         <div className="admin-auth-logo">
-          <div className="admin-auth-logo-icon"><FiMusic /></div>
+          <img className="admin-auth-logo-img" src="/logo-96.jpg" alt="" width="52" height="52" />
           <div>
-            <h2 className="admin-auth-title">Admin Access</h2>
+            <h1 className="admin-auth-title">Admin Access</h1>
             <p className="admin-auth-subtitle">TUCASA TIA Choir — Secure Dashboard</p>
           </div>
         </div>
 
-        <form className="admin-form" onSubmit={handleSubmit}>
+        <form className="form-stack" onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">Email Address</label>
+            <label className="form-label" htmlFor="admin-email">Email Address</label>
             <div className="form-input-wrap">
               <FiMail className="form-input-icon" />
               <input
+                id="admin-email"
                 type="email"
-                className="form-input"
+                className="form-input with-icon"
                 placeholder="admin@tucasa.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
@@ -157,12 +159,13 @@ function AuthForm() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Password</label>
+            <label className="form-label" htmlFor="admin-password">Password</label>
             <div className="form-input-wrap">
               <FiLock className="form-input-icon" />
               <input
+                id="admin-password"
                 type="password"
-                className="form-input"
+                className="form-input with-icon"
                 placeholder="••••••••"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
@@ -173,14 +176,14 @@ function AuthForm() {
           </div>
 
           {error && (
-            <div className="form-error">
+            <div className="notice notice-error" role="alert">
               <FiAlertCircle /> {error}
             </div>
           )}
 
-          <button type="submit" className="form-submit-btn" disabled={loading}>
+          <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
             {loading
-              ? <><span className="btn-spinner" /> Authenticating...</>
+              ? <><span className="spinner" /> Authenticating...</>
               : <>Access Dashboard <FiChevronRight /></>
             }
           </button>
@@ -192,6 +195,7 @@ function AuthForm() {
 
 /* ─── Manage Hymn Modal ──────────────────────────────────────────── */
 function ManageHymnModal({ hymn, onClose }) {
+  const [confirm, confirmDialog] = useConfirm();
   const [trackTitle, setTrackTitle] = useState('');
   const [audioFile, setAudioFile] = useState(null);
   const [pdfFile, setPdfFile] = useState(null);
@@ -214,6 +218,13 @@ function ManageHymnModal({ hymn, onClose }) {
       setTracks(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
   }, [hymn.id]);
+
+  useEffect(() => {
+    // A confirm dialog open on top takes Escape for itself
+    const onKey = (e) => { if (e.key === 'Escape' && !document.querySelector('dialog[open]')) onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   const handleAudioFileSelect = (file) => {
     const err = validateAudioFile(file);
@@ -274,7 +285,11 @@ function ManageHymnModal({ hymn, onClose }) {
   };
 
   const handleDeleteTrack = async (track) => {
-    if (!window.confirm(`Delete "${track.title}"?`)) return;
+    const ok = await confirm({
+      title: `Delete "${track.title}"?`,
+      message: 'This removes the track from the hymn. This cannot be undone.',
+    });
+    if (!ok) return;
     setDeletingTrack(track.id);
     try {
       await deleteDoc(doc(db, 'audioTracks', track.id));
@@ -291,17 +306,20 @@ function ManageHymnModal({ hymn, onClose }) {
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <motion.div
         className="modal-box"
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        transition={{ duration: 0.25 }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="manage-hymn-title"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 12 }}
+        transition={{ duration: 0.2 }}
       >
         <div className="modal-header">
           <div className="modal-header-text">
-            <h2 className="modal-title">{hymn.title}</h2>
+            <h2 className="modal-title" id="manage-hymn-title">{hymn.title}</h2>
             <p className="modal-subtitle">Upload tracks and sheet music</p>
           </div>
-          <button className="modal-close-btn" onClick={onClose} type="button"><FiX /></button>
+          <button className="btn btn-secondary btn-icon btn-sm" onClick={onClose} type="button" aria-label="Close" autoFocus><FiX /></button>
         </div>
 
         <div className="modal-body">
@@ -317,16 +335,16 @@ function ManageHymnModal({ hymn, onClose }) {
               label="Drop PDF or image here or click to browse"
               hint="PDF, JPG, PNG · max 20 MB"
             />
-            {pdfError && <p className="field-error"><FiAlertCircle /> {pdfError}</p>}
+            {pdfError && <p className="field-error" role="alert"><FiAlertCircle /> {pdfError}</p>}
             {uploadingPdf && <UploadProgress progress={pdfProgress} label="Uploading..." />}
             <button
               type="button"
-              className={`upload-submit-btn${uploadingPdf || !pdfFile ? ' disabled' : ''}`}
+              className="btn btn-primary btn-block"
               onClick={handleUploadPdf}
               disabled={uploadingPdf || !pdfFile}
             >
               {uploadingPdf
-                ? <><span className="btn-spinner" /> Uploading...</>
+                ? <><span className="spinner" /> Uploading...</>
                 : <><FiUpload /> Upload Sheet Music</>
               }
             </button>
@@ -336,12 +354,13 @@ function ManageHymnModal({ hymn, onClose }) {
           <div className="modal-section">
             <p className="modal-section-label"><FiHeadphones /> Add Voice Track</p>
             <div className="form-group">
-              <label className="form-label">Track Title *</label>
+              <label className="form-label" htmlFor="track-title">Track Title *</label>
               <div className="form-input-wrap">
                 <FiMusic className="form-input-icon" />
                 <input
+                  id="track-title"
                   type="text"
-                  className="form-input"
+                  className="form-input with-icon"
                   placeholder="e.g. Soprano, Alto, Tenor, Bass"
                   value={trackTitle}
                   onChange={e => setTrackTitle(e.target.value)}
@@ -357,16 +376,16 @@ function ManageHymnModal({ hymn, onClose }) {
               label="Drop audio file here or click to browse"
               hint="MP3, WAV, M4A · max 50 MB"
             />
-            {audioError && <p className="field-error"><FiAlertCircle /> {audioError}</p>}
+            {audioError && <p className="field-error" role="alert"><FiAlertCircle /> {audioError}</p>}
             {uploadingAudio && <UploadProgress progress={audioProgress} label="Uploading audio..." />}
             <button
               type="button"
-              className={`upload-submit-btn${uploadingAudio || !audioFile || !trackTitle.trim() ? ' disabled' : ''}`}
+              className="btn btn-primary btn-block"
               onClick={handleUploadAudio}
               disabled={uploadingAudio || !audioFile || !trackTitle.trim()}
             >
               {uploadingAudio
-                ? <><span className="btn-spinner" /> Uploading...</>
+                ? <><span className="spinner" /> Uploading...</>
                 : <><FiUpload /> Upload Track</>
               }
             </button>
@@ -375,12 +394,12 @@ function ManageHymnModal({ hymn, onClose }) {
           {/* Existing Tracks */}
           {tracks.length > 0 && (
             <div className="modal-section">
-              <p className="modal-section-label"><FiList /> Uploaded Tracks ({tracks.length})</p>
+              <p className="modal-section-label"><FiList /> Uploaded Tracks (<span className="num">{tracks.length}</span>)</p>
               <div className="admin-tracks-list">
                 {tracks.map(track => (
                   <div key={track.id} className="admin-track-item">
-                    <div className="admin-track-icon" style={{ background: getVoiceColor(track.title) }}>
-                      <FiMusic />
+                    <div className={`voice-tile voice-fill ${voiceKey(track.title)}`} aria-hidden="true">
+                      {voiceLetter(track.title)}
                     </div>
                     <div className="admin-track-info">
                       <div className="admin-track-title">{track.title}</div>
@@ -391,19 +410,21 @@ function ManageHymnModal({ hymn, onClose }) {
                         href={track.audioUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="admin-action-btn edit icon-only"
+                        className="btn btn-secondary btn-icon btn-sm"
                         title="Preview"
+                        aria-label={`Preview ${track.title}`}
                       >
                         <FiEye />
                       </a>
                       <button
                         type="button"
-                        className="admin-action-btn delete icon-only"
+                        className="btn btn-danger btn-icon btn-sm"
                         onClick={() => handleDeleteTrack(track)}
                         disabled={deletingTrack === track.id}
                         title="Delete"
+                        aria-label={`Delete ${track.title}`}
                       >
-                        {deletingTrack === track.id ? <span className="btn-spinner" /> : <FiTrash2 />}
+                        {deletingTrack === track.id ? <span className="spinner" /> : <FiTrash2 />}
                       </button>
                     </div>
                   </div>
@@ -413,6 +434,7 @@ function ManageHymnModal({ hymn, onClose }) {
           )}
         </div>
       </motion.div>
+      {confirmDialog}
     </div>
   );
 }
@@ -423,48 +445,42 @@ function DashboardView({ hymns, onNavigate }) {
   const withPdf = hymns.filter(h => h.pdfUrl).length;
 
   const stats = [
-    { icon: <FiBookOpen />, color: 'green',  num: hymns.length, label: 'Total Hymns',  view: 'manage' },
-    { icon: <FiHeadphones />, color: 'blue', num: totalTracks,  label: 'Audio Tracks', view: 'manage' },
-    { icon: <BsFilePdf />,   color: 'orange',num: withPdf,      label: 'With PDF',     view: 'manage' },
-    { icon: <FiUsers />,     color: 'red',   num: 4,            label: 'Voice Parts',  view: null },
+    { icon: <FiBookOpen />,   tone: 'info',    num: hymns.length, label: 'Total Hymns' },
+    { icon: <FiHeadphones />, tone: 'success', num: totalTracks,  label: 'Audio Tracks' },
+    { icon: <BsFilePdf />,    tone: 'warning', num: withPdf,      label: 'Hymns with Sheet Music' },
   ];
 
   return (
     <>
-      <div className="admin-stats-grid">
-        {stats.map((s, i) => (
-          <motion.div
-            key={i}
-            className={`admin-stat-card${s.view ? ' clickable' : ''}`}
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.07 }}
-            onClick={() => s.view && onNavigate(s.view)}
-            role={s.view ? 'button' : undefined}
-            tabIndex={s.view ? 0 : undefined}
-            onKeyDown={s.view ? (e) => e.key === 'Enter' && onNavigate(s.view) : undefined}
+      <div className="stats-grid">
+        {stats.map(s => (
+          <button
+            key={s.label}
+            type="button"
+            className="stat-card"
+            onClick={() => onNavigate('manage')}
           >
-            <div className={`admin-stat-icon ${s.color}`}>{s.icon}</div>
-            <div className="admin-stat-info">
-              <div className="admin-stat-num">{s.num}</div>
-              <div className="admin-stat-label">{s.label}</div>
+            <div className={`stat-icon ${s.tone}`}>{s.icon}</div>
+            <div className="stat-info">
+              <div className="stat-num">{s.num}</div>
+              <div className="stat-label">{s.label}</div>
             </div>
-          </motion.div>
+          </button>
         ))}
       </div>
 
-      <div className="admin-panel">
-        <div className="admin-panel-header">
-          <h3 className="admin-panel-title">Recent Hymns</h3>
+      <div className="panel">
+        <div className="panel-header">
+          <h2 className="panel-title">Recent Hymns</h2>
           {hymns.length > 0 && (
-            <button type="button" className="admin-panel-view-all" onClick={() => onNavigate('manage')}>
+            <button type="button" className="btn btn-tertiary btn-sm" onClick={() => onNavigate('manage')}>
               View all <FiChevronRight />
             </button>
           )}
         </div>
-        <div className="admin-panel-body">
+        <div className="panel-body">
           {hymns.length === 0 ? (
-            <div className="admin-empty-state">
+            <div className="inline-empty">
               <FiMusic />
               <p>No hymns yet. Use "Add Hymn" to get started.</p>
             </div>
@@ -481,8 +497,8 @@ function DashboardView({ hymns, onNavigate }) {
                   <div className="admin-hymn-item-info">
                     <div className="admin-hymn-item-title">{h.title}</div>
                     <div className="admin-hymn-item-meta">
-                      <span>{h.trackCount || 0} track{h.trackCount !== 1 ? 's' : ''}</span>
-                      {h.pdfUrl && <span className="badge-pdf">PDF</span>}
+                      <span><span className="num">{h.trackCount || 0}</span> track{h.trackCount !== 1 ? 's' : ''}</span>
+                      {h.pdfUrl && <span className="badge badge-pdf">PDF</span>}
                     </div>
                   </div>
                   <FiChevronRight className="admin-hymn-item-arrow" />
@@ -525,19 +541,20 @@ function AddHymnView({ onAdded }) {
   };
 
   return (
-    <div className="admin-panel">
-      <div className="admin-panel-header">
-        <h3 className="admin-panel-title">Create New Hymn</h3>
+    <div className="panel">
+      <div className="panel-header">
+        <h2 className="panel-title">Create New Hymn</h2>
       </div>
-      <div className="admin-panel-body">
+      <div className="panel-body">
         <form className="add-hymn-form" onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">Hymn Title *</label>
+            <label className="form-label" htmlFor="hymn-title">Hymn Title *</label>
             <div className="form-input-wrap">
               <FiMusic className="form-input-icon" />
               <input
+                id="hymn-title"
                 type="text"
-                className="form-input"
+                className="form-input with-icon"
                 placeholder="Enter hymn title..."
                 value={title}
                 onChange={e => setTitle(e.target.value)}
@@ -546,8 +563,9 @@ function AddHymnView({ onAdded }) {
             </div>
           </div>
           <div className="form-group">
-            <label className="form-label">Description</label>
+            <label className="form-label" htmlFor="hymn-description">Description</label>
             <textarea
+              id="hymn-description"
               className="form-textarea"
               placeholder="Brief description of the hymn..."
               value={description}
@@ -557,10 +575,10 @@ function AddHymnView({ onAdded }) {
           </div>
           <button
             type="submit"
-            className={`admin-action-btn primary create-btn${saving ? ' disabled' : ''}`}
+            className="btn btn-primary create-btn"
             disabled={saving}
           >
-            {saving ? <><span className="btn-spinner" /> Creating...</> : <><FiPlus /> Create Hymn</>}
+            {saving ? <><span className="spinner" /> Creating...</> : <><FiPlus /> Create Hymn</>}
           </button>
         </form>
       </div>
@@ -570,6 +588,7 @@ function AddHymnView({ onAdded }) {
 
 /* ─── Manage Hymns View ──────────────────────────────────────────── */
 function ManageHymnsView({ hymns, highlightId }) {
+  const [confirm, confirmDialog] = useConfirm();
   const [managingHymn, setManagingHymn] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
@@ -589,6 +608,8 @@ function ManageHymnsView({ hymns, highlightId }) {
       }, 180);
     }
   }, [highlightId]);
+
+  const closeManageModal = useCallback(() => setManagingHymn(null), []);
 
   const startEdit = (hymn) => {
     setEditingId(hymn.id);
@@ -614,7 +635,11 @@ function ManageHymnsView({ hymns, highlightId }) {
   };
 
   const deleteHymn = async (hymn) => {
-    if (!window.confirm(`Delete "${hymn.title}"? This removes all its tracks too.`)) return;
+    const ok = await confirm({
+      title: `Delete "${hymn.title}"?`,
+      message: 'This removes the hymn and all its tracks. This cannot be undone.',
+    });
+    if (!ok) return;
     setDeleting(hymn.id);
     try {
       const q = query(collection(db, 'audioTracks'), where('hymnId', '==', hymn.id));
@@ -631,14 +656,14 @@ function ManageHymnsView({ hymns, highlightId }) {
 
   return (
     <>
-      <div className="admin-panel">
-        <div className="admin-panel-header">
-          <h3 className="admin-panel-title">All Hymns</h3>
-          <span className="admin-panel-count">{hymns.length}</span>
+      <div className="panel">
+        <div className="panel-header">
+          <h2 className="panel-title">All Hymns</h2>
+          <span className="panel-count">{hymns.length}</span>
         </div>
-        <div className="admin-panel-body">
+        <div className="panel-body">
           {hymns.length === 0 ? (
-            <div className="admin-empty-state">
+            <div className="inline-empty">
               <FiMusic />
               <p>No hymns yet. Add one first.</p>
             </div>
@@ -653,26 +678,26 @@ function ManageHymnsView({ hymns, highlightId }) {
                   {editingId === hymn.id ? (
                     <div className="admin-hymn-edit-form">
                       <div className="form-group">
-                        <label className="form-label">Title</label>
+                        <label className="form-label" htmlFor="edit-hymn-title">Title</label>
                         <div className="form-input-wrap">
                           <FiMusic className="form-input-icon" />
-                          <input className="form-input" value={editTitle} onChange={e => setEditTitle(e.target.value)} />
+                          <input id="edit-hymn-title" className="form-input with-icon" value={editTitle} onChange={e => setEditTitle(e.target.value)} />
                         </div>
                       </div>
                       <div className="form-group">
-                        <label className="form-label">Description</label>
-                        <textarea className="form-textarea" rows={2} value={editDesc} onChange={e => setEditDesc(e.target.value)} />
+                        <label className="form-label" htmlFor="edit-hymn-description">Description</label>
+                        <textarea id="edit-hymn-description" className="form-textarea" rows={2} value={editDesc} onChange={e => setEditDesc(e.target.value)} />
                       </div>
                       <div className="admin-edit-actions">
                         <button
                           type="button"
-                          className={`admin-action-btn primary${saving ? ' disabled' : ''}`}
+                          className="btn btn-primary btn-sm"
                           onClick={saveEdit}
                           disabled={saving}
                         >
                           {saving ? 'Saving...' : 'Save Changes'}
                         </button>
-                        <button type="button" className="admin-action-btn edit" onClick={() => setEditingId(null)}>Cancel</button>
+                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditingId(null)}>Cancel</button>
                       </div>
                     </div>
                   ) : (
@@ -681,35 +706,36 @@ function ManageHymnsView({ hymns, highlightId }) {
                       <div className="admin-hymn-item-info">
                         <div className="admin-hymn-item-title">{hymn.title}</div>
                         <div className="admin-hymn-item-meta">
-                          <span>{hymn.trackCount || 0} track{hymn.trackCount !== 1 ? 's' : ''}</span>
-                          {hymn.pdfUrl && <span className="badge-pdf">PDF</span>}
+                          <span><span className="num">{hymn.trackCount || 0}</span> track{hymn.trackCount !== 1 ? 's' : ''}</span>
+                          {hymn.pdfUrl && <span className="badge badge-pdf">PDF</span>}
                         </div>
                       </div>
                       <div className="admin-hymn-item-actions">
                         <button
                           type="button"
-                          className="admin-action-btn primary"
+                          className="btn btn-primary btn-sm"
                           onClick={() => setManagingHymn(hymn)}
                           title="Manage tracks & PDF"
                         >
-                          <FiUpload /> <span className="btn-label">Manage</span>
+                          <FiUpload /> Manage
                         </button>
                         <button
                           type="button"
-                          className="admin-action-btn edit"
+                          className="btn btn-secondary btn-sm"
                           onClick={() => startEdit(hymn)}
                           title="Edit"
                         >
-                          <FiEdit3 /> <span className="btn-label">Edit</span>
+                          <FiEdit3 /> Edit
                         </button>
                         <button
                           type="button"
-                          className="admin-action-btn delete icon-only"
+                          className="btn btn-danger btn-icon btn-sm"
                           onClick={() => deleteHymn(hymn)}
                           disabled={deleting === hymn.id}
                           title="Delete"
+                          aria-label={`Delete ${hymn.title}`}
                         >
-                          {deleting === hymn.id ? <span className="btn-spinner" /> : <FiTrash2 />}
+                          {deleting === hymn.id ? <span className="spinner" /> : <FiTrash2 />}
                         </button>
                       </div>
                     </>
@@ -723,9 +749,10 @@ function ManageHymnsView({ hymns, highlightId }) {
 
       <AnimatePresence>
         {managingHymn && (
-          <ManageHymnModal hymn={managingHymn} onClose={() => setManagingHymn(null)} />
+          <ManageHymnModal hymn={managingHymn} onClose={closeManageModal} />
         )}
       </AnimatePresence>
+      {confirmDialog}
     </>
   );
 }
@@ -733,11 +760,11 @@ function ManageHymnsView({ hymns, highlightId }) {
 /* ─── Settings View ──────────────────────────────────────────────── */
 function SettingsView({ user }) {
   return (
-    <div className="admin-panel">
-      <div className="admin-panel-header">
-        <h3 className="admin-panel-title">Settings</h3>
+    <div className="panel">
+      <div className="panel-header">
+        <h2 className="panel-title">Settings</h2>
       </div>
-      <div className="admin-panel-body">
+      <div className="panel-body">
         <div className="settings-info-card">
           <p className="settings-info-label">Signed in as</p>
           <p className="settings-info-value">{user?.email}</p>
@@ -750,65 +777,13 @@ function SettingsView({ user }) {
   );
 }
 
-/* ─── Sidebar ────────────────────────────────────────────────────── */
+/* ─── Navigation ─────────────────────────────────────────────────── */
 const NAV = [
   { key: 'dashboard', icon: <FiHome />,     label: 'Dashboard' },
   { key: 'add',       icon: <FiPlus />,     label: 'Add Hymn' },
   { key: 'manage',    icon: <FiList />,     label: 'Manage Hymns' },
   { key: 'settings',  icon: <FiSettings />, label: 'Settings' },
 ];
-
-function Sidebar({ activeView, onNavigate, onLogout, open, onClose }) {
-  const navigate = useNavigate();
-  return (
-    <>
-      <div
-        className={`sidebar-overlay${open ? ' visible' : ''}`}
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <aside className={`admin-sidebar${open ? ' open' : ''}`}>
-        <div className="sidebar-logo">
-          <div className="sidebar-logo-icon"><FiMusic /></div>
-          <div>
-            <div className="sidebar-logo-text">TUCASA TIA</div>
-            <div className="sidebar-logo-sub">Admin Panel</div>
-          </div>
-        </div>
-
-        <nav className="sidebar-nav" aria-label="Admin navigation">
-          <p className="sidebar-nav-label">Navigation</p>
-          {NAV.map(item => (
-            <button
-              key={item.key}
-              type="button"
-              className={`sidebar-nav-item${activeView === item.key ? ' active' : ''}`}
-              onClick={() => { onNavigate(item.key); onClose(); }}
-            >
-              <span className="sidebar-nav-icon">{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
-          <p className="sidebar-nav-label" style={{ marginTop: '12px' }}>Modules</p>
-          <button
-            type="button"
-            className="sidebar-nav-item"
-            onClick={() => { onClose(); navigate('/admin/attendance'); }}
-          >
-            <span className="sidebar-nav-icon"><FiCalendar /></span>
-            Attendance
-          </button>
-        </nav>
-
-        <div className="sidebar-footer">
-          <button type="button" className="sidebar-logout-btn" onClick={onLogout}>
-            <FiLogOut /> Sign Out
-          </button>
-        </div>
-      </aside>
-    </>
-  );
-}
 
 /* ─── Main Admin Page ────────────────────────────────────────────── */
 const TITLE_MAP = {
@@ -819,14 +794,13 @@ const TITLE_MAP = {
 export default function Admin() {
   const [user, setUser]               = useState(undefined);
   const [activeView, setActiveView]   = useState('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [hymns, setHymns]             = useState([]);
   const [highlightHymnId, setHighlightHymnId] = useState(null);
+  const navigate = useNavigate();
 
   const navigateTo = (view, hymnId = null) => {
     setHighlightHymnId(hymnId);
     setActiveView(view);
-    setSidebarOpen(false);
   };
 
   useEffect(() => onAuthStateChanged(auth, u => setUser(u || null)), []);
@@ -839,64 +813,36 @@ export default function Admin() {
     });
   }, [user]);
 
-  useEffect(() => {
-    const close = () => { if (window.innerWidth >= 900) setSidebarOpen(false); };
-    window.addEventListener('resize', close, { passive: true });
-    return () => window.removeEventListener('resize', close);
-  }, []);
-
-  if (user === undefined) return null;
+  if (user === undefined) return <div className="shell-loading"><Loader /></div>;
   if (!user) return <AuthForm />;
 
   return (
-    <div className="admin-layout">
-      <Sidebar
-        activeView={activeView}
-        onNavigate={(view) => navigateTo(view)}
-        onLogout={() => { signOut(auth); toast.success('Signed out.'); }}
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
-
-      <div className="admin-main">
-        <div className="admin-topbar">
-          <div className="admin-topbar-left">
-            <button
-              type="button"
-              className="admin-hamburger"
-              onClick={() => setSidebarOpen(v => !v)}
-              aria-label="Toggle sidebar"
-              aria-expanded={sidebarOpen}
-            >
-              {sidebarOpen ? <FiX /> : <FiMenu />}
-            </button>
-            <h1 className="admin-topbar-title">{TITLE_MAP[activeView]}</h1>
-          </div>
-          <div className="admin-topbar-right">
-            <div className="admin-user-badge">
-              <div className="admin-user-avatar">{user.email?.[0]?.toUpperCase()}</div>
-              <span className="admin-user-email">{user.email}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="admin-content">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeView}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -14 }}
-              transition={{ duration: 0.22 }}
-            >
-              {activeView === 'dashboard' && <DashboardView hymns={hymns} onNavigate={navigateTo} />}
-              {activeView === 'add'       && <AddHymnView onAdded={() => navigateTo('manage')} />}
-              {activeView === 'manage'    && <ManageHymnsView hymns={hymns} highlightId={highlightHymnId} />}
-              {activeView === 'settings'  && <SettingsView user={user} />}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </div>
-    </div>
+    <AdminShell
+      title="TUCASA TIA"
+      subtitle="Admin Panel"
+      pageTitle={TITLE_MAP[activeView]}
+      userEmail={user.email}
+      nav={NAV}
+      activeView={activeView}
+      onNavigate={(view) => navigateTo(view)}
+      onLogout={() => { signOut(auth); toast.success('Signed out.'); }}
+      linksLabel="Modules"
+      links={[{ icon: <FiCalendar />, label: 'Attendance', onClick: () => navigate('/admin/attendance') }]}
+    >
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeView}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.16 }}
+        >
+          {activeView === 'dashboard' && <DashboardView hymns={hymns} onNavigate={navigateTo} />}
+          {activeView === 'add'       && <AddHymnView onAdded={() => navigateTo('manage')} />}
+          {activeView === 'manage'    && <ManageHymnsView hymns={hymns} highlightId={highlightHymnId} />}
+          {activeView === 'settings'  && <SettingsView user={user} />}
+        </motion.div>
+      </AnimatePresence>
+    </AdminShell>
   );
 }

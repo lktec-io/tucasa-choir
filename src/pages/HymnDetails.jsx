@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { doc, getDoc, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
@@ -86,20 +86,15 @@ export default function HymnDetails() {
       className="hymn-details-page"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
+      transition={{ duration: 0.2 }}
     >
       <div className="container">
-        <button className="hymn-details-back" onClick={() => navigate(-1)}>
+        <button type="button" className="btn btn-tertiary btn-sm hymn-details-back" onClick={() => navigate(-1)}>
           <FiArrowLeft /> Back to Library
         </button>
 
-        {/* Hymn Hero Card */}
-        <motion.div
-          className="hymn-details-hero"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
+        {/* Hymn Header */}
+        <div className="hymn-details-hero">
           <div className="hymn-details-header">
             <div className="hymn-details-icon">
               <FiMusic />
@@ -113,11 +108,11 @@ export default function HymnDetails() {
               <div className="hymn-details-meta">
                 {hymn.createdAt && (
                   <span className="hymn-details-meta-item">
-                    <FiCalendar /> {formatDate(hymn.createdAt)}
+                    <FiCalendar /> <span className="num">{formatDate(hymn.createdAt)}</span>
                   </span>
                 )}
                 <span className="hymn-details-meta-item">
-                  <FiHeadphones /> {tracks.length} voice track{tracks.length !== 1 ? 's' : ''}
+                  <FiHeadphones /> <span><span className="num">{tracks.length}</span> voice track{tracks.length !== 1 ? 's' : ''}</span>
                 </span>
                 {hymn.pdfUrl && (
                   <span className="hymn-details-meta-item">
@@ -127,16 +122,11 @@ export default function HymnDetails() {
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Sheet Music Section */}
-        <motion.div
-          className="pdf-section"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <p className="section-label">Sheet Music</p>
+        <section className="pdf-section">
+          <h2 className="section-label">Sheet Music</h2>
           <div className="pdf-card">
             <div className="pdf-icon-wrap">
               {['jpg', 'jpeg', 'png'].includes((hymn.pdfFormat || '').toLowerCase())
@@ -155,14 +145,14 @@ export default function HymnDetails() {
               <div className="pdf-actions">
                 <button
                   type="button"
-                  className="pdf-btn primary"
+                  className="btn btn-primary"
                   onClick={() => setShowPreview(true)}
                 >
                   <FiEye /> Preview
                 </button>
                 <button
                   type="button"
-                  className="pdf-btn secondary"
+                  className="btn btn-secondary"
                   onClick={() => triggerDownload(
                     hymn.pdfUrl,
                     hymn.pdfOriginalName || `${hymn.title} Sheet Music`
@@ -175,7 +165,7 @@ export default function HymnDetails() {
               <p className="pdf-no-file">Not yet available</p>
             )}
           </div>
-        </motion.div>
+        </section>
 
         {/* Sheet Music Preview Modal */}
         <AnimatePresence>
@@ -190,10 +180,13 @@ export default function HymnDetails() {
             >
               <motion.div
                 className="sheet-preview-modal"
-                initial={{ opacity: 0, scale: 0.94, y: 24 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.94, y: 24 }}
-                transition={{ duration: 0.22 }}
+                role="dialog"
+                aria-modal="true"
+                aria-label={`${hymn.title} sheet music preview`}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 12 }}
+                transition={{ duration: 0.2 }}
               >
                 <div className="sheet-preview-header">
                   <div className="sheet-preview-header-left">
@@ -207,16 +200,19 @@ export default function HymnDetails() {
                       href={hymn.pdfUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="sheet-preview-action-btn"
+                      className="btn btn-secondary btn-icon btn-sm"
                       title="Open in new tab"
+                      aria-label="Open in new tab"
                     >
                       <FiMaximize2 />
                     </a>
                     <button
                       type="button"
-                      className="sheet-preview-action-btn"
+                      className="btn btn-secondary btn-icon btn-sm"
                       onClick={closePreview}
                       title="Close"
+                      aria-label="Close preview"
+                      autoFocus
                     >
                       <FiX />
                     </button>
@@ -243,25 +239,17 @@ export default function HymnDetails() {
         </AnimatePresence>
 
         {/* Voice Tracks */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <p className="section-label" style={{ marginBottom: 'var(--space-md)' }}>
-            Voice Part Tracks
-          </p>
+        <section>
+          <h2 className="section-label">Voice Part Tracks</h2>
 
           {tracksLoading ? (
             <Loader text="Loading tracks..." />
           ) : tracks.length === 0 ? (
-            <div className="tracks-grid">
-              <EmptyState
-                icon="music"
-                title="No tracks uploaded"
-                text="No voice part tracks have been uploaded for this hymn yet."
-              />
-            </div>
+            <EmptyState
+              icon="music"
+              title="No tracks uploaded"
+              text="No voice part tracks have been uploaded for this hymn yet."
+            />
           ) : (
             <>
               {/* Choir Mix player — shown whenever there is at least one track */}
@@ -286,19 +274,12 @@ export default function HymnDetails() {
               </div>
             </>
           )}
-        </motion.div>
+        </section>
 
         {/* Note */}
-        <motion.div
-          style={{ marginTop: 'var(--space-2xl)' }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-        >
-          <p className="note-text">
-            <strong>Note:</strong> These audio tracks are provided for learning purposes. Users are encouraged to download them for offline practice. If you find any issues with the audio quality, please contact our support team.
-          </p>
-        </motion.div>
+        <p className="note-text hymn-details-note">
+          <strong>Note:</strong> These audio tracks are provided for learning purposes. Users are encouraged to download them for offline practice. If you find any issues with the audio quality, please contact our support team.
+        </p>
       </div>
     </motion.div>
   );

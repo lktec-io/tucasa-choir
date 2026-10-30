@@ -1,0 +1,231 @@
+/* Sidebar + topbar layout shared by the hymn admin and attendance modules */
+.shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+.shell-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  background: var(--color-overlay);
+}
+
+.shell-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: calc(var(--z-overlay) + 1);
+  display: flex;
+  flex-direction: column;
+  width: var(--sidebar-width);
+  background: var(--ink-bg);
+  color: var(--ink-text);
+  overflow-y: auto;
+}
+
+.shell-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--ink-border);
+}
+
+.shell-brand-logo {
+  width: 38px;
+  height: 38px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.shell-brand-title {
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  line-height: 1.2;
+}
+
+.shell-brand-sub {
+  font-size: var(--text-xs);
+  color: var(--ink-text-muted);
+}
+
+.shell-nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-3);
+}
+
+.shell-nav-label {
+  padding: var(--space-3) var(--space-3) var(--space-1);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-gold);
+}
+
+.shell-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 42px;
+  padding: 0 var(--space-3);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  text-align: left;
+  color: var(--ink-text-muted);
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.shell-nav-item svg {
+  font-size: 17px;
+  flex-shrink: 0;
+}
+
+.shell-nav-item:hover {
+  background: var(--ink-bg-raised);
+  color: var(--ink-text);
+}
+
+.shell-nav-item.active {
+  background: var(--ink-active);
+  color: var(--ink-text);
+  box-shadow: inset 3px 0 0 var(--ink-gold);
+}
+
+.shell-sidebar :focus-visible {
+  outline-color: var(--ink-gold);
+}
+
+.shell-sidebar-footer {
+  padding: var(--space-3);
+  border-top: 1px solid var(--ink-border);
+}
+
+.shell-main {
+  flex: 1;
+  min-width: 0;
+  margin-left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.shell-topbar {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  height: var(--topbar-height);
+  padding: 0 var(--space-6);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.shell-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.shell-menu-btn {
+  display: none;
+}
+
+.shell-title {
+  font-size: var(--text-lg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shell-user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.shell-user-avatar {
+  width: 30px;
+  height: 30px;
+  font-size: var(--text-xs);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.shell-user-email {
+  max-width: 200px;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shell-content {
+  flex: 1;
+  width: 100%;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: var(--space-6);
+}
+
+.shell-loading {
+  min-height: 100vh;
+}
+
+@media (max-width: 900px) {
+  .shell-overlay.visible {
+    display: block;
+  }
+
+  /* visibility keeps off-canvas links out of the keyboard order */
+  .shell-sidebar {
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform var(--transition-base), visibility var(--transition-base);
+  }
+
+  .shell-sidebar.open {
+    transform: none;
+    visibility: visible;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .shell-main {
+    margin-left: 0;
+  }
+
+  .shell-menu-btn {
+    display: inline-flex;
+  }
+
+  .shell-topbar {
+    padding: 0 var(--space-4);
+  }
+
+  .shell-content {
+    padding: var(--space-4);
+  }
+}
+
+@media (max-width: 640px) {
+  .shell-user-email {
+    display: none;
+  }
+}

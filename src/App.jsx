@@ -1,5 +1,7 @@
+import './styles/global.css';
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { MotionConfig } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -9,7 +11,6 @@ import HymnDetails from './pages/HymnDetails';
 import Admin from './pages/Admin';
 import AttendanceAdmin from './pages/AttendanceAdmin';
 import AttendancePortal from './pages/AttendancePortal';
-import './styles/global.css';
 
 export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
@@ -23,23 +24,27 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <MotionConfig reducedMotion="user">
       <ScrollToTop />
       <Toaster
         position="top-right"
+        containerStyle={{ zIndex: 400 }}
         toastOptions={{
           style: {
-            background: theme === 'dark' ? '#1a4a2e' : '#ffffff',
-            color: theme === 'dark' ? '#e8f5ee' : '#1e3d2a',
-            border: `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(26,74,46,0.18)'}`,
-            borderRadius: '12px',
-            fontSize: '0.88rem',
-            boxShadow: theme === 'dark' ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(0,0,0,0.12)',
+            background: 'var(--color-surface)',
+            color: 'var(--color-text)',
+            border: '1px solid var(--color-border)',
+            borderRadius: '6px',
+            fontFamily: 'var(--font-sans)',
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            boxShadow: 'var(--shadow-md)',
           },
           success: {
-            iconTheme: { primary: '#4caf7d', secondary: theme === 'dark' ? '#e8f5ee' : '#fff' },
+            iconTheme: { primary: '#1b6545', secondary: '#ffffff' },
           },
           error: {
-            iconTheme: { primary: '#f87171', secondary: theme === 'dark' ? '#e8f5ee' : '#fff' },
+            iconTheme: { primary: '#a8231b', secondary: '#ffffff' },
           },
         }}
       />
@@ -53,8 +58,9 @@ export default function App() {
           path="/*"
           element={
             <>
+              <a href="#main-content" className="skip-link">Skip to content</a>
               <Navbar theme={theme} onToggleTheme={toggleTheme} />
-              <main className="page-wrapper">
+              <main className="page-wrapper" id="main-content" tabIndex={-1}>
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/hymn/:id" element={<HymnDetails />} />
@@ -66,6 +72,7 @@ export default function App() {
           }
         />
       </Routes>
+      </MotionConfig>
     </BrowserRouter>
   );
 }

@@ -14,11 +14,15 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import {
   FiHome, FiUsers, FiCalendar, FiClock, FiCheck, FiX,
-  FiEdit3, FiTrash2, FiPlus, FiSearch, FiLogOut,
-  FiDownload, FiShare2, FiMenu, FiChevronRight,
-  FiArrowLeft, FiAlertCircle, FiFileText, FiBarChart2,
-  FiMusic, FiCopy, FiCheckCircle, FiUser, FiPhone, FiMail
+  FiEdit3, FiTrash2, FiPlus, FiSearch,
+  FiDownload, FiShare2, FiChevronLeft, FiChevronRight,
+  FiArrowLeft, FiFileText, FiBarChart2,
+  FiCopy, FiCheckCircle, FiUser, FiPhone, FiMail
 } from 'react-icons/fi';
+import AdminShell from '../components/AdminShell';
+import { Loader } from '../components/Loader';
+import { useConfirm } from '../hooks/useConfirm';
+import { voiceKey } from '../utils/voice';
 import '../styles/Attendance.css';
 
 /* ── Constants ─────────────────────────────────────────────────────── */
@@ -28,23 +32,10 @@ const GENDERS       = ['Male', 'Female'];
 const STATUSES      = ['present', 'absent', 'late', 'excused'];
 
 /* ── Helpers ────────────────────────────────────────────────────────── */
-function voiceColor(vp = '') {
-  const v = vp.toLowerCase();
-  if (v === 'soprano') return 'linear-gradient(135deg,#ff6b9d,#c44b7d)';
-  if (v === 'alto')    return 'linear-gradient(135deg,#f5a623,#e07b10)';
-  if (v === 'tenor')   return 'linear-gradient(135deg,#4ecdc4,#2aa198)';
-  if (v === 'bass')    return 'linear-gradient(135deg,#4a90e2,#2d6ab4)';
-  return 'var(--gradient-accent)';
-}
-function voiceClass(vp = '') {
-  return 'att-voice-' + vp.toLowerCase();
-}
 function statusLabel(s) {
   return { present: 'Present', absent: 'Absent', late: 'Late', excused: 'Excused' }[s] || '—';
 }
-function statusEmoji(s) {
-  return { present: '✓', absent: '✗', late: '⏰', excused: '📝' }[s] || '—';
-}
+const STATUS_ICONS = { present: FiCheck, absent: FiX, late: FiClock, excused: FiFileText };
 function today() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -80,44 +71,38 @@ function AttDashboard({ members, sessions, onOpenSession, onNavigate }) {
     : 0;
 
   const stats = [
-    { icon: <FiUsers />,     color: 'green',  num: members.length,  label: 'Total Members' },
-    { icon: <FiCalendar />,  color: 'blue',   num: sessions.length, label: 'Total Sessions' },
-    { icon: <FiCheckCircle />,color: 'green', num: todayStats.present, label: 'Present (Latest)' },
-    { icon: <FiX />,         color: 'red',    num: todayStats.absent,  label: 'Absent (Latest)' },
-    { icon: <FiClock />,     color: 'amber',  num: todayStats.late,    label: 'Late (Latest)' },
-    { icon: <FiBarChart2 />, color: 'purple', num: `${attendanceRate}%`, label: 'Attendance Rate' },
+    { icon: <FiUsers />,       tone: 'info',    num: members.length,     label: 'Total Members' },
+    { icon: <FiCalendar />,    tone: 'info',    num: sessions.length,    label: 'Total Sessions' },
+    { icon: <FiCheckCircle />, tone: 'success', num: todayStats.present, label: 'Present (Latest)' },
+    { icon: <FiX />,           tone: 'danger',  num: todayStats.absent,  label: 'Absent (Latest)' },
+    { icon: <FiClock />,       tone: 'warning', num: todayStats.late,    label: 'Late (Latest)' },
+    { icon: <FiBarChart2 />,   tone: 'neutral', num: `${attendanceRate}%`, label: 'Attendance Rate' },
   ];
 
   return (
     <>
-      <div className="att-stats-grid">
-        {stats.map((s, i) => (
-          <motion.div
-            key={i}
-            className="att-stat-card"
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06 }}
-          >
-            <div className={`att-stat-icon ${s.color}`}>{s.icon}</div>
-            <div>
-              <div className="att-stat-num">{s.num}</div>
-              <div className="att-stat-label">{s.label}</div>
+      <div className="stats-grid six">
+        {stats.map(s => (
+          <div key={s.label} className="stat-card">
+            <div className={`stat-icon ${s.tone}`}>{s.icon}</div>
+            <div className="stat-info">
+              <div className="stat-num">{s.num}</div>
+              <div className="stat-label">{s.label}</div>
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
 
-      <div className="att-panel">
-        <div className="att-panel-header">
-          <span className="att-panel-title">Recent Sessions</span>
-          <button type="button" className="att-btn secondary sm" onClick={() => onNavigate('sessions')}>
+      <div className="panel">
+        <div className="panel-header">
+          <h2 className="panel-title">Recent Sessions</h2>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => onNavigate('sessions')}>
             View all <FiChevronRight />
           </button>
         </div>
-        <div className="att-panel-body">
+        <div className="panel-body">
           {sessions.length === 0 ? (
-            <div className="att-empty"><FiCalendar /><p>No sessions yet. Create one to get started.</p></div>
+            <div className="inline-empty"><FiCalendar /><p>No sessions yet. Create one to get started.</p></div>
           ) : (
             <div className="att-recent-list">
               {sessions.slice(0, 5).map(s => (
@@ -130,7 +115,7 @@ function AttDashboard({ members, sessions, onOpenSession, onNavigate }) {
                   <div className="att-recent-icon"><FiCalendar /></div>
                   <div className="att-recent-info">
                     <div className="att-recent-title">{s.title}</div>
-                    <div className="att-recent-meta">{s.type} · {formatDate(s.date)}</div>
+                    <div className="att-recent-meta">{s.type} · <span className="num">{formatDate(s.date)}</span></div>
                   </div>
                   <FiChevronRight />
                 </button>
@@ -145,6 +130,7 @@ function AttDashboard({ members, sessions, onOpenSession, onNavigate }) {
 
 /* ── MembersView ────────────────────────────────────────────────────── */
 function MembersView({ members }) {
+  const [confirm, confirmDialog] = useConfirm();
   const [search, setSearch]       = useState('');
   const [showForm, setShowForm]   = useState(false);
   const [editMember, setEditMember] = useState(null);
@@ -196,7 +182,11 @@ function MembersView({ members }) {
   };
 
   const handleDelete = async m => {
-    if (!window.confirm(`Delete "${m.name}"?`)) return;
+    const ok = await confirm({
+      title: `Delete "${m.name}"?`,
+      message: 'This removes the member from the choir list. This cannot be undone.',
+    });
+    if (!ok) return;
     setDeleting(m.id);
     try {
       await deleteDoc(doc(db, 'members', m.id));
@@ -217,17 +207,18 @@ function MembersView({ members }) {
 
   return (
     <>
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ flex: 1, position: 'relative', minWidth: '200px' }}>
-          <FiSearch style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-dim)', fontSize: '0.9rem' }} />
+      <div className="att-toolbar">
+        <div className="form-input-wrap att-toolbar-search">
+          <FiSearch className="form-input-icon" />
           <input
-            className="att-form-input with-icon"
+            className="form-input with-icon"
             placeholder="Search members..."
+            aria-label="Search members"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <button type="button" className="att-btn primary" onClick={openAdd}>
+        <button type="button" className="btn btn-primary" onClick={openAdd}>
           <FiPlus /> Add Member
         </button>
       </div>
@@ -242,53 +233,53 @@ function MembersView({ members }) {
           >
             <div className="att-inline-form-title">
               <span>{editMember ? 'Edit Member' : 'Add New Member'}</span>
-              <button type="button" className="att-btn secondary sm icon-only" onClick={() => setShowForm(false)}><FiX /></button>
+              <button type="button" className="btn btn-secondary btn-icon btn-sm" onClick={() => setShowForm(false)} aria-label="Close form"><FiX /></button>
             </div>
             <form onSubmit={handleSave}>
-              <div className="att-form-row">
-                <div className="att-form-group">
-                  <label className="att-form-label">Full Name *</label>
-                  <div className="att-form-input-wrap">
-                    <FiUser className="att-form-input-icon" />
-                    <input className="att-form-input with-icon" placeholder="e.g. John Doe" value={form.name} onChange={set('name')} required />
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="member-name">Full Name *</label>
+                  <div className="form-input-wrap">
+                    <FiUser className="form-input-icon" />
+                    <input id="member-name" className="form-input with-icon" placeholder="e.g. John Doe" value={form.name} onChange={set('name')} required />
                   </div>
                 </div>
-                <div className="att-form-group">
-                  <label className="att-form-label">Gender *</label>
-                  <select className="att-form-select" value={form.gender} onChange={set('gender')} required>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="member-gender">Gender *</label>
+                  <select id="member-gender" className="form-select" value={form.gender} onChange={set('gender')} required>
                     <option value="">Select gender</option>
                     {GENDERS.map(g => <option key={g} value={g}>{g}</option>)}
                   </select>
                 </div>
               </div>
-              <div className="att-form-row">
-                <div className="att-form-group">
-                  <label className="att-form-label">Voice Part *</label>
-                  <select className="att-form-select" value={form.voicePart} onChange={set('voicePart')} required>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="member-voice">Voice Part *</label>
+                  <select id="member-voice" className="form-select" value={form.voicePart} onChange={set('voicePart')} required>
                     <option value="">Select voice part</option>
                     {VOICE_PARTS.map(v => <option key={v} value={v}>{v}</option>)}
                   </select>
                 </div>
-                <div className="att-form-group">
-                  <label className="att-form-label">Phone (optional)</label>
-                  <div className="att-form-input-wrap">
-                    <FiPhone className="att-form-input-icon" />
-                    <input className="att-form-input with-icon" placeholder="+255..." value={form.phone} onChange={set('phone')} />
+                <div className="form-group">
+                  <label className="form-label" htmlFor="member-phone">Phone (optional)</label>
+                  <div className="form-input-wrap">
+                    <FiPhone className="form-input-icon" />
+                    <input id="member-phone" className="form-input with-icon" placeholder="+255..." value={form.phone} onChange={set('phone')} />
                   </div>
                 </div>
               </div>
-              <div className="att-form-group">
-                <label className="att-form-label">Email (optional)</label>
-                <div className="att-form-input-wrap">
-                  <FiMail className="att-form-input-icon" />
-                  <input type="email" className="att-form-input with-icon" placeholder="member@email.com" value={form.email} onChange={set('email')} />
+              <div className="form-group">
+                <label className="form-label" htmlFor="member-email">Email (optional)</label>
+                <div className="form-input-wrap">
+                  <FiMail className="form-input-icon" />
+                  <input id="member-email" type="email" className="form-input with-icon" placeholder="member@email.com" value={form.email} onChange={set('email')} />
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button type="submit" className="att-btn primary" disabled={saving}>
-                  {saving ? <><span className="att-spinner" /> Saving...</> : <><FiCheck /> {editMember ? 'Save Changes' : 'Add Member'}</>}
+              <div className="form-actions">
+                <button type="submit" className="btn btn-primary" disabled={saving}>
+                  {saving ? <><span className="spinner" /> Saving...</> : <><FiCheck /> {editMember ? 'Save Changes' : 'Add Member'}</>}
                 </button>
-                <button type="button" className="att-btn secondary" onClick={() => setShowForm(false)}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
               </div>
             </form>
           </motion.div>
@@ -296,38 +287,36 @@ function MembersView({ members }) {
       </AnimatePresence>
 
       {filtered.length === 0 ? (
-        <div className="att-empty"><FiUsers /><p>{search ? 'No members match your search.' : 'No members yet. Add the first one!'}</p></div>
+        <div className="inline-empty"><FiUsers /><p>{search ? 'No members match your search.' : 'No members yet. Add the first one!'}</p></div>
       ) : (
         voiceGroups.map(vp => {
           const group = filtered.filter(m => m.voicePart === vp);
           if (!group.length) return null;
           return (
-            <div key={vp} className="att-panel" style={{ marginBottom: '16px' }}>
-              <div className="att-panel-header">
-                <span className="att-panel-title">
-                  <span className={`att-voice-badge ${voiceClass(vp)}`}>{vp}</span>
-                </span>
-                <span className="att-panel-count">{group.length}</span>
+            <div key={vp} className="panel">
+              <div className="panel-header">
+                <h2 className="panel-title">{vp}</h2>
+                <span className="panel-count">{group.length}</span>
               </div>
-              <div className="att-panel-body" style={{ paddingTop: '12px' }}>
+              <div className="panel-body">
                 <div className="att-list">
                   {group.map(m => (
                     <div key={m.id} className="att-member-item">
-                      <div className="att-member-avatar" style={{ background: voiceColor(m.voicePart) }}>
+                      <div className={`avatar voice-fill ${voiceKey(m.voicePart)}`} aria-hidden="true">
                         {initials(m.name)}
                       </div>
                       <div className="att-member-info">
                         <div className="att-member-name">{m.name}</div>
                         <div className="att-member-meta">
                           <span>{m.gender}</span>
-                          {m.membershipId && <span className="att-member-id">{m.membershipId}</span>}
-                          {m.phone && <span>{m.phone}</span>}
+                          {m.membershipId && <span className="att-member-id num">{m.membershipId}</span>}
+                          {m.phone && <span className="num">{m.phone}</span>}
                         </div>
                       </div>
                       <div className="att-member-actions">
-                        <button type="button" className="att-btn secondary icon-only" onClick={() => openEdit(m)} title="Edit"><FiEdit3 /></button>
-                        <button type="button" className="att-btn danger icon-only" onClick={() => handleDelete(m)} disabled={deleting === m.id} title="Delete">
-                          {deleting === m.id ? <span className="att-spinner" /> : <FiTrash2 />}
+                        <button type="button" className="btn btn-secondary btn-icon btn-sm" onClick={() => openEdit(m)} title="Edit" aria-label={`Edit ${m.name}`}><FiEdit3 /></button>
+                        <button type="button" className="btn btn-danger btn-icon btn-sm" onClick={() => handleDelete(m)} disabled={deleting === m.id} title="Delete" aria-label={`Delete ${m.name}`}>
+                          {deleting === m.id ? <span className="spinner" /> : <FiTrash2 />}
                         </button>
                       </div>
                     </div>
@@ -338,12 +327,14 @@ function MembersView({ members }) {
           );
         })
       )}
+      {confirmDialog}
     </>
   );
 }
 
 /* ── SessionsView ───────────────────────────────────────────────────── */
 function SessionsView({ sessions, onOpenSession }) {
+  const [confirm, confirmDialog] = useConfirm();
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving]     = useState(false);
   const [deleting, setDeleting] = useState(null);
@@ -377,7 +368,11 @@ function SessionsView({ sessions, onOpenSession }) {
   };
 
   const handleDelete = async s => {
-    if (!window.confirm(`Delete session "${s.title}"? All attendance records for this session will also be deleted.`)) return;
+    const ok = await confirm({
+      title: `Delete session "${s.title}"?`,
+      message: 'All attendance records for this session will also be deleted. This cannot be undone.',
+    });
+    if (!ok) return;
     setDeleting(s.id);
     try {
       const q = query(collection(db, 'attendanceRecords'), where('sessionId', '==', s.id));
@@ -394,8 +389,8 @@ function SessionsView({ sessions, onOpenSession }) {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
-        <button type="button" className="att-btn primary" onClick={() => setShowForm(v => !v)}>
+      <div className="att-toolbar att-toolbar-end">
+        <button type="button" className="btn btn-primary" onClick={() => setShowForm(v => !v)}>
           <FiPlus /> New Session
         </button>
       </div>
@@ -410,41 +405,41 @@ function SessionsView({ sessions, onOpenSession }) {
           >
             <div className="att-inline-form-title">
               <span>Create Attendance Session</span>
-              <button type="button" className="att-btn secondary sm icon-only" onClick={() => setShowForm(false)}><FiX /></button>
+              <button type="button" className="btn btn-secondary btn-icon btn-sm" onClick={() => setShowForm(false)} aria-label="Close form"><FiX /></button>
             </div>
             <form onSubmit={handleCreate}>
-              <div className="att-form-row">
-                <div className="att-form-group">
-                  <label className="att-form-label">Session Title *</label>
-                  <input className="att-form-input" placeholder="e.g. Sunday Rehearsal" value={form.title} onChange={set('title')} required />
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="session-title">Session Title *</label>
+                  <input id="session-title" className="form-input" placeholder="e.g. Sunday Rehearsal" value={form.title} onChange={set('title')} required />
                 </div>
-                <div className="att-form-group">
-                  <label className="att-form-label">Session Type *</label>
-                  <select className="att-form-select" value={form.type} onChange={set('type')} required>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="session-type">Session Type *</label>
+                  <select id="session-type" className="form-select" value={form.type} onChange={set('type')} required>
                     <option value="">Select type</option>
                     {SESSION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
               </div>
-              <div className="att-form-row">
-                <div className="att-form-group">
-                  <label className="att-form-label">Date *</label>
-                  <input type="date" className="att-form-input att-filter-date" value={form.date} onChange={set('date')} required />
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="session-date">Date *</label>
+                  <input id="session-date" type="date" className="form-input num" value={form.date} onChange={set('date')} required />
                 </div>
-                <div className="att-form-group">
-                  <label className="att-form-label">Time</label>
-                  <input type="time" className="att-form-input att-filter-date" value={form.time} onChange={set('time')} />
+                <div className="form-group">
+                  <label className="form-label" htmlFor="session-time">Time</label>
+                  <input id="session-time" type="time" className="form-input num" value={form.time} onChange={set('time')} />
                 </div>
               </div>
-              <div className="att-form-group">
-                <label className="att-form-label">Description (optional)</label>
-                <textarea className="att-form-textarea" placeholder="Notes about this session..." value={form.description} onChange={set('description')} rows={2} />
+              <div className="form-group">
+                <label className="form-label" htmlFor="session-description">Description (optional)</label>
+                <textarea id="session-description" className="form-textarea" placeholder="Notes about this session..." value={form.description} onChange={set('description')} rows={2} />
               </div>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button type="submit" className="att-btn primary" disabled={saving}>
-                  {saving ? <><span className="att-spinner" /> Creating...</> : <><FiPlus /> Create Session</>}
+              <div className="form-actions">
+                <button type="submit" className="btn btn-primary" disabled={saving}>
+                  {saving ? <><span className="spinner" /> Creating...</> : <><FiPlus /> Create Session</>}
                 </button>
-                <button type="button" className="att-btn secondary" onClick={() => setShowForm(false)}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
               </div>
             </form>
           </motion.div>
@@ -452,38 +447,40 @@ function SessionsView({ sessions, onOpenSession }) {
       </AnimatePresence>
 
       {sessions.length === 0 ? (
-        <div className="att-empty"><FiCalendar /><p>No sessions yet. Create one above.</p></div>
+        <div className="inline-empty"><FiCalendar /><p>No sessions yet. Create one above.</p></div>
       ) : (
         <div className="att-sessions-grid">
           {sessions.map(s => (
-            <div key={s.id} className="att-session-card" onClick={() => onOpenSession(s)}>
+            <div key={s.id} className="att-session-card">
               <div className="att-session-card-header">
-                <span className="att-type-badge"><FiCalendar />{s.type}</span>
-                <div className="att-session-card-actions" onClick={e => e.stopPropagation()}>
-                  <button
-                    type="button"
-                    className="att-btn danger icon-only"
-                    onClick={() => handleDelete(s)}
-                    disabled={deleting === s.id}
-                    title="Delete session"
-                  >
-                    {deleting === s.id ? <span className="att-spinner" /> : <FiTrash2 />}
-                  </button>
-                </div>
+                <span className="badge"><FiCalendar />{s.type}</span>
+                <button
+                  type="button"
+                  className="btn btn-danger btn-icon btn-sm att-session-delete"
+                  onClick={() => handleDelete(s)}
+                  disabled={deleting === s.id}
+                  title="Delete session"
+                  aria-label={`Delete session ${s.title}`}
+                >
+                  {deleting === s.id ? <span className="spinner" /> : <FiTrash2 />}
+                </button>
               </div>
-              <div className="att-session-title">{s.title}</div>
+              <button type="button" className="att-session-title" onClick={() => onOpenSession(s)}>
+                {s.title}
+              </button>
               <div className="att-session-date">
                 <FiClock />
-                {formatDate(s.date)}{s.time ? ` · ${s.time}` : ''}
+                <span className="num">{formatDate(s.date)}{s.time ? ` · ${s.time}` : ''}</span>
               </div>
               <div className="att-session-footer">
-                <span className="att-session-stat"><FiUsers /> Click to record attendance</span>
-                <span className="att-session-open-btn">Open <FiChevronRight /></span>
+                <span className="att-session-stat"><FiUsers /> Record attendance</span>
+                <span className="att-session-open-btn" aria-hidden="true">Open <FiChevronRight /></span>
               </div>
             </div>
           ))}
         </div>
       )}
+      {confirmDialog}
     </>
   );
 }
@@ -565,52 +562,52 @@ function RecordAttendance({ session, members, onBack }) {
 
   return (
     <>
-      <button type="button" className="att-btn secondary sm" style={{ marginBottom: '16px' }} onClick={onBack}>
+      <button type="button" className="btn btn-secondary btn-sm att-back-link" onClick={onBack}>
         <FiArrowLeft /> Back to Sessions
       </button>
 
-      <div className="att-panel" style={{ marginBottom: '16px' }}>
-        <div className="att-panel-header">
+      <div className="panel">
+        <div className="panel-header">
           <div>
-            <div className="att-panel-title">{session.title}</div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-              {session.type} · {formatDate(session.date)}{session.time ? ` · ${session.time}` : ''}
+            <h2 className="panel-title">{session.title}</h2>
+            <div className="panel-subtitle">
+              {session.type} · <span className="num">{formatDate(session.date)}{session.time ? ` · ${session.time}` : ''}</span>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            <button type="button" className="att-btn primary sm" onClick={() => markAll('present')}>
-              ✓ All Present
-            </button>
-          </div>
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => markAll('present')}>
+            <FiCheck /> All Present
+          </button>
         </div>
-        <div className="att-panel-body" style={{ paddingBottom: '12px' }}>
+        <div className="panel-body">
           <div className="att-summary-bar">
-            <span className="att-summary-chip present"><span className="dot"/>{summary.present} Present</span>
-            <span className="att-summary-chip absent"><span className="dot"/>{summary.absent} Absent</span>
-            <span className="att-summary-chip late"><span className="dot"/>{summary.late} Late</span>
-            <span className="att-summary-chip excused"><span className="dot"/>{summary.excused} Excused</span>
-            {unmarked > 0 && <span style={{ fontSize: '0.78rem', color: 'var(--color-text-dim)' }}>· {unmarked} unmarked</span>}
+            <span className="att-summary-chip present"><span className="dot"/><span className="num">{summary.present}</span> Present</span>
+            <span className="att-summary-chip absent"><span className="dot"/><span className="num">{summary.absent}</span> Absent</span>
+            <span className="att-summary-chip late"><span className="dot"/><span className="num">{summary.late}</span> Late</span>
+            <span className="att-summary-chip excused"><span className="dot"/><span className="num">{summary.excused}</span> Excused</span>
+            {unmarked > 0 && <span className="att-summary-unmarked"><span className="num">{unmarked}</span> unmarked</span>}
           </div>
 
           <div className="att-record-toolbar">
-            <div className="att-record-search">
-              <FiSearch />
+            <div className="form-input-wrap att-toolbar-search">
+              <FiSearch className="form-input-icon" />
               <input
+                className="form-input with-icon"
                 placeholder="Search member..."
+                aria-label="Search member"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
-            <select className="att-filter-select" value={filterVoice} onChange={e => setFilterVoice(e.target.value)}>
+            <select className="form-select att-filter" aria-label="Filter by voice part" value={filterVoice} onChange={e => setFilterVoice(e.target.value)}>
               <option value="">All voices</option>
               {VOICE_PARTS.map(v => <option key={v} value={v}>{v}</option>)}
             </select>
           </div>
 
           {!loaded ? (
-            <div className="att-empty"><span className="att-spinner" style={{ fontSize: '1.4rem' }} /></div>
+            <Loader text="Loading records..." />
           ) : filtered.length === 0 ? (
-            <div className="att-empty"><FiUsers /><p>No members found.</p></div>
+            <div className="inline-empty"><FiUsers /><p>No members found.</p></div>
           ) : (
             <div className="att-record-list">
               {filtered.map(m => {
@@ -623,27 +620,32 @@ function RecordAttendance({ session, members, onBack }) {
                     className={`att-record-row${status ? ` ${status}-row` : ''}`}
                   >
                     <div className="att-record-member">
-                      <div className="att-member-avatar" style={{ background: voiceColor(m.voicePart), width: '32px', height: '32px', fontSize: '0.75rem' }}>
+                      <div className={`avatar voice-fill ${voiceKey(m.voicePart)}`} aria-hidden="true">
                         {initials(m.name)}
                       </div>
-                      <div>
+                      <div className="att-record-text">
                         <div className="att-record-name">{m.name}</div>
                         <div className="att-record-voice">{m.voicePart}</div>
                       </div>
                     </div>
                     <div className="att-status-btns">
-                      {STATUSES.map(s => (
-                        <button
-                          key={s}
-                          type="button"
-                          title={statusLabel(s)}
-                          className={`att-status-btn ${s}${status === s ? ' active' : ''}${isSaving ? ' saving' : ''}`}
-                          onClick={() => !isSaving && markAttendance(m, s)}
-                          disabled={isSaving}
-                        >
-                          {isSaving && status === s ? <span className="att-spinner" style={{ width: '12px', height: '12px' }} /> : statusEmoji(s)}
-                        </button>
-                      ))}
+                      {STATUSES.map(s => {
+                        const Icon = STATUS_ICONS[s];
+                        return (
+                          <button
+                            key={s}
+                            type="button"
+                            title={statusLabel(s)}
+                            aria-label={`Mark ${m.name} ${statusLabel(s).toLowerCase()}`}
+                            aria-pressed={status === s}
+                            className={`att-status-btn ${s}${status === s ? ' active' : ''}${isSaving ? ' saving' : ''}`}
+                            onClick={() => !isSaving && markAttendance(m, s)}
+                            disabled={isSaving}
+                          >
+                            {isSaving && status === s ? <span className="spinner" /> : <Icon />}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -697,45 +699,46 @@ function HistoryView({ members, sessions }) {
   return (
     <>
       <div className="att-filters">
-        <select className="att-filter-select" value={filterMember} onChange={e => { setFilterMember(e.target.value); setPage(1); }}>
+        <select className="form-select att-filter" aria-label="Filter by member" value={filterMember} onChange={e => { setFilterMember(e.target.value); setPage(1); }}>
           <option value="">All Members</option>
           {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
         </select>
-        <select className="att-filter-select" value={filterVoice} onChange={e => { setFilterVoice(e.target.value); setPage(1); }}>
+        <select className="form-select att-filter" aria-label="Filter by voice part" value={filterVoice} onChange={e => { setFilterVoice(e.target.value); setPage(1); }}>
           <option value="">All Voices</option>
           {VOICE_PARTS.map(v => <option key={v} value={v}>{v}</option>)}
         </select>
-        <select className="att-filter-select" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1); }}>
+        <select className="form-select att-filter" aria-label="Filter by status" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1); }}>
           <option value="">All Statuses</option>
           {STATUSES.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
         </select>
         <input
           type="date"
-          className="att-filter-date"
+          className="form-input att-filter num"
+          aria-label="Filter by date"
           value={filterDate}
           onChange={e => { setFilterDate(e.target.value); setPage(1); }}
         />
         {(filterMember || filterVoice || filterStatus || filterDate) && (
-          <button type="button" className="att-btn secondary sm" onClick={resetFilters}>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={resetFilters}>
             <FiX /> Clear
           </button>
         )}
       </div>
 
-      <div className="att-panel">
-        <div className="att-panel-header">
-          <span className="att-panel-title">Attendance Records</span>
-          <span className="att-panel-count">{filtered.length}</span>
+      <div className="panel">
+        <div className="panel-header">
+          <h2 className="panel-title">Attendance Records</h2>
+          <span className="panel-count">{filtered.length}</span>
         </div>
-        <div style={{ padding: '0' }}>
+        <div>
           {loading ? (
-            <div className="att-empty"><span className="att-spinner" style={{ fontSize: '1.4rem' }} /></div>
+            <Loader text="Loading records..." />
           ) : paged.length === 0 ? (
-            <div className="att-empty"><FiFileText /><p>No records match your filters.</p></div>
+            <div className="inline-empty"><FiFileText /><p>No records match your filters.</p></div>
           ) : (
             <>
-              <div className="att-table-wrap">
-                <table className="att-table">
+              <div className="table-wrap">
+                <table className="data-table">
                   <thead>
                     <tr>
                       <th>Member</th>
@@ -748,25 +751,25 @@ function HistoryView({ members, sessions }) {
                   <tbody>
                     {paged.map(r => (
                       <tr key={r.id}>
-                        <td style={{ fontWeight: 600 }}>{r.memberName || '—'}</td>
-                        <td><span className={`att-voice-badge ${voiceClass(r.memberVoicePart || '')}`}>{r.memberVoicePart || '—'}</span></td>
-                        <td>{r.sessionTitle || '—'}</td>
-                        <td style={{ whiteSpace: 'nowrap' }}>{r.sessionDate ? formatDate(r.sessionDate) : '—'}</td>
-                        <td><span className={`att-status-badge ${r.status}`}>{statusLabel(r.status)}</span></td>
+                        <td data-label="Member" className="cell-strong">{r.memberName || '—'}</td>
+                        <td data-label="Voice Part"><span className={`voice-badge ${voiceKey(r.memberVoicePart || '')}`}>{r.memberVoicePart || '—'}</span></td>
+                        <td data-label="Session">{r.sessionTitle || '—'}</td>
+                        <td data-label="Date" className="cell-date">{r.sessionDate ? formatDate(r.sessionDate) : '—'}</td>
+                        <td data-label="Status"><span className={`status-badge ${r.status}`}>{statusLabel(r.status)}</span></td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
               {totalPages > 1 && (
-                <div className="att-pagination">
-                  <button type="button" className="att-page-btn" onClick={() => setPage(p => p - 1)} disabled={page === 1}>‹</button>
+                <div className="pagination">
+                  <button type="button" className="page-btn" onClick={() => setPage(p => p - 1)} disabled={page === 1} aria-label="Previous page"><FiChevronLeft /></button>
                   {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
                     const p = totalPages <= 7 ? i + 1 : page <= 4 ? i + 1 : page + i - 3;
                     if (p < 1 || p > totalPages) return null;
-                    return <button key={p} type="button" className={`att-page-btn${page === p ? ' active' : ''}`} onClick={() => setPage(p)}>{p}</button>;
+                    return <button key={p} type="button" className={`page-btn${page === p ? ' active' : ''}`} onClick={() => setPage(p)} aria-label={`Page ${p}`} aria-current={page === p ? 'page' : undefined}>{p}</button>;
                   })}
-                  <button type="button" className="att-page-btn" onClick={() => setPage(p => p + 1)} disabled={page === totalPages}>›</button>
+                  <button type="button" className="page-btn" onClick={() => setPage(p => p + 1)} disabled={page === totalPages} aria-label="Next page"><FiChevronRight /></button>
                 </div>
               )}
             </>
@@ -930,8 +933,8 @@ function ReportsView({ sessions, members }) {
   return (
     <>
       <div className="att-session-select-wrap">
-        <label>Select Session to Export</label>
-        <select className="att-form-select" value={selectedSessionId} onChange={e => setSelectedSessionId(e.target.value)}>
+        <label htmlFor="report-session">Select Session to Export</label>
+        <select id="report-session" className="form-select" value={selectedSessionId} onChange={e => setSelectedSessionId(e.target.value)}>
           <option value="">— Choose a session —</option>
           {sessions.map(s => (
             <option key={s.id} value={s.id}>{s.title} · {formatDate(s.date)}</option>
@@ -944,8 +947,8 @@ function ReportsView({ sessions, members }) {
           <div className="att-report-card-icon pdf"><FiFileText /></div>
           <div className="att-report-card-title">PDF Report</div>
           <div className="att-report-card-desc">Generate a professional PDF with member list, attendance status and summary statistics.</div>
-          <button type="button" className="att-btn primary" onClick={exportPDF} disabled={!!generating || !selectedSessionId}>
-            {generating === 'pdf' ? <><span className="att-spinner" /> Generating...</> : <><FiDownload /> Download PDF</>}
+          <button type="button" className="btn btn-primary" onClick={exportPDF} disabled={!!generating || !selectedSessionId}>
+            {generating === 'pdf' ? <><span className="spinner" /> Generating...</> : <><FiDownload /> Download PDF</>}
           </button>
         </div>
 
@@ -953,8 +956,8 @@ function ReportsView({ sessions, members }) {
           <div className="att-report-card-icon excel"><FiFileText /></div>
           <div className="att-report-card-title">Excel Report</div>
           <div className="att-report-card-desc">Export attendance data as an XLSX spreadsheet for further analysis or record keeping.</div>
-          <button type="button" className="att-btn primary" onClick={exportExcel} disabled={!!generating || !selectedSessionId}>
-            {generating === 'excel' ? <><span className="att-spinner" /> Generating...</> : <><FiDownload /> Download Excel</>}
+          <button type="button" className="btn btn-primary" onClick={exportExcel} disabled={!!generating || !selectedSessionId}>
+            {generating === 'excel' ? <><span className="spinner" /> Generating...</> : <><FiDownload /> Download Excel</>}
           </button>
         </div>
 
@@ -962,7 +965,7 @@ function ReportsView({ sessions, members }) {
           <div className="att-report-card-icon share"><FiShare2 /></div>
           <div className="att-report-card-title">Member Portal</div>
           <div className="att-report-card-desc">Share the public attendance portal link where members can view their own attendance history.</div>
-          <button type="button" className="att-btn secondary" onClick={copyLink}>
+          <button type="button" className="btn btn-secondary" onClick={copyLink}>
             <FiCopy /> Copy Portal Link
           </button>
         </div>
@@ -971,7 +974,7 @@ function ReportsView({ sessions, members }) {
   );
 }
 
-/* ── Sidebar ────────────────────────────────────────────────────────── */
+/* ── Navigation ─────────────────────────────────────────────────────── */
 const ATT_NAV = [
   { key: 'dashboard', icon: <FiHome />,      label: 'Dashboard' },
   { key: 'members',   icon: <FiUsers />,     label: 'Members' },
@@ -979,45 +982,6 @@ const ATT_NAV = [
   { key: 'history',   icon: <FiFileText />,  label: 'History' },
   { key: 'reports',   icon: <FiBarChart2 />, label: 'Reports' },
 ];
-
-function AttSidebar({ activeView, onNavigate, onLogout, open, onClose, userEmail }) {
-  const navigate = useNavigate();
-  return (
-    <>
-      <div className={`att-sidebar-overlay${open ? ' visible' : ''}`} onClick={onClose} aria-hidden="true" />
-      <aside className={`att-sidebar${open ? ' open' : ''}`}>
-        <div className="att-sidebar-logo">
-          <div className="att-sidebar-logo-icon"><FiUsers /></div>
-          <div>
-            <div className="att-sidebar-logo-text">Attendance</div>
-            <div className="att-sidebar-logo-sub">TUCASA TIA Choir</div>
-          </div>
-        </div>
-        <nav className="att-sidebar-nav">
-          <p className="att-sidebar-nav-label">Navigation</p>
-          {ATT_NAV.map(item => (
-            <button
-              key={item.key}
-              type="button"
-              className={`att-nav-item${activeView === item.key ? ' active' : ''}`}
-              onClick={() => { onNavigate(item.key); onClose(); }}
-            >
-              {item.icon}{item.label}
-            </button>
-          ))}
-        </nav>
-        <div className="att-sidebar-footer">
-          <button type="button" className="att-back-btn" onClick={() => navigate('/admin')}>
-            <FiArrowLeft /> Back to Admin
-          </button>
-          <button type="button" className="att-logout-btn" onClick={onLogout}>
-            <FiLogOut /> Sign Out
-          </button>
-        </div>
-      </aside>
-    </>
-  );
-}
 
 /* ── Main ───────────────────────────────────────────────────────────── */
 const TITLE_MAP = {
@@ -1032,7 +996,6 @@ const TITLE_MAP = {
 export default function AttendanceAdmin() {
   const [user, setUser]               = useState(undefined);
   const [activeView, setActiveView]   = useState('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [members, setMembers]         = useState([]);
   const [sessions, setSessions]       = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
@@ -1050,21 +1013,15 @@ export default function AttendanceAdmin() {
   }, [user]);
 
   useEffect(() => {
-    const close = () => { if (window.innerWidth >= 900) setSidebarOpen(false); };
-    window.addEventListener('resize', close, { passive: true });
-    return () => window.removeEventListener('resize', close);
-  }, []);
+    if (user === null) navigate('/admin');
+  }, [user, navigate]);
 
-  if (user === undefined) return null;
-  if (!user) {
-    navigate('/admin');
-    return null;
-  }
+  if (user === undefined) return <div className="shell-loading"><Loader /></div>;
+  if (!user) return null;
 
   const openSession = (session) => {
     setSelectedSession(session);
     setActiveView('record');
-    setSidebarOpen(false);
   };
 
   const handleLogout = () => { signOut(auth); toast.success('Signed out.'); navigate('/admin'); };
@@ -1074,68 +1031,47 @@ export default function AttendanceAdmin() {
     : (TITLE_MAP[activeView] || 'Attendance');
 
   return (
-    <div className="att-layout">
-      <AttSidebar
-        activeView={activeView}
-        onNavigate={v => { setActiveView(v); setSelectedSession(null); }}
-        onLogout={handleLogout}
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        userEmail={user.email}
-      />
-
-      <div className="att-main">
-        <div className="att-topbar">
-          <div className="att-topbar-left">
-            <button
-              type="button"
-              className="att-hamburger"
-              onClick={() => setSidebarOpen(v => !v)}
-              aria-label="Toggle sidebar"
-              aria-expanded={sidebarOpen}
-            >
-              {sidebarOpen ? <FiX /> : <FiMenu />}
-            </button>
-            <span className="att-topbar-title">{currentTitle}</span>
-          </div>
-          <div className="att-user-badge">
-            <div className="att-user-avatar">{user.email?.[0]?.toUpperCase()}</div>
-            <span className="att-user-email">{user.email}</span>
-          </div>
-        </div>
-
-        <div className="att-content">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeView === 'record' ? `record-${selectedSession?.id}` : activeView}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.2 }}
-            >
-              {activeView === 'dashboard' && (
-                <AttDashboard
-                  members={members}
-                  sessions={sessions}
-                  onOpenSession={openSession}
-                  onNavigate={v => setActiveView(v)}
-                />
-              )}
-              {activeView === 'members' && <MembersView members={members} />}
-              {activeView === 'sessions' && <SessionsView sessions={sessions} onOpenSession={openSession} />}
-              {activeView === 'record' && selectedSession && (
-                <RecordAttendance
-                  session={selectedSession}
-                  members={members}
-                  onBack={() => setActiveView('sessions')}
-                />
-              )}
-              {activeView === 'history' && <HistoryView members={members} sessions={sessions} />}
-              {activeView === 'reports' && <ReportsView sessions={sessions} members={members} />}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </div>
-    </div>
+    <AdminShell
+      title="Attendance"
+      subtitle="TUCASA TIA Choir"
+      pageTitle={currentTitle}
+      userEmail={user.email}
+      nav={ATT_NAV}
+      activeView={activeView}
+      onNavigate={v => { setActiveView(v); setSelectedSession(null); }}
+      onLogout={handleLogout}
+      linksLabel="Modules"
+      links={[{ icon: <FiArrowLeft />, label: 'Back to Admin', onClick: () => navigate('/admin') }]}
+    >
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeView === 'record' ? `record-${selectedSession?.id}` : activeView}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.16 }}
+        >
+          {activeView === 'dashboard' && (
+            <AttDashboard
+              members={members}
+              sessions={sessions}
+              onOpenSession={openSession}
+              onNavigate={v => setActiveView(v)}
+            />
+          )}
+          {activeView === 'members' && <MembersView members={members} />}
+          {activeView === 'sessions' && <SessionsView sessions={sessions} onOpenSession={openSession} />}
+          {activeView === 'record' && selectedSession && (
+            <RecordAttendance
+              session={selectedSession}
+              members={members}
+              onBack={() => setActiveView('sessions')}
+            />
+          )}
+          {activeView === 'history' && <HistoryView members={members} sessions={sessions} />}
+          {activeView === 'reports' && <ReportsView sessions={sessions} members={members} />}
+        </motion.div>
+      </AnimatePresence>
+    </AdminShell>
   );
 }
