@@ -1,8 +1,19 @@
 import axios from 'axios';
 
-const CLOUD_NAME    = 'dod8srxyj';
-const UPLOAD_PRESET = 'tucasa-choir';
+const CLOUD_NAME    = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 const UPLOAD_URL    = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`;
+
+const MISSING_CONFIG = [
+  !CLOUD_NAME && 'VITE_CLOUDINARY_CLOUD_NAME',
+  !UPLOAD_PRESET && 'VITE_CLOUDINARY_UPLOAD_PRESET',
+].filter(Boolean);
+
+const CONFIG_ERROR = MISSING_CONFIG.length
+  ? `Cloudinary is not configured. Missing environment variable(s): ${MISSING_CONFIG.join(', ')}.`
+  : null;
+
+if (CONFIG_ERROR) console.error(`[Cloudinary] ${CONFIG_ERROR}`);
 
 const ALLOWED_AUDIO_EXT  = ['mp3', 'wav', 'm4a'];
 const ALLOWED_SHEET_EXT  = ['pdf', 'jpg', 'jpeg', 'png'];
@@ -33,6 +44,8 @@ export function formatFileSize(bytes) {
 }
 
 async function uploadToCloudinary(file, onProgress) {
+  if (CONFIG_ERROR) throw new Error(CONFIG_ERROR);
+
   const formData = new FormData();
   formData.append('file', file);
   formData.append('upload_preset', UPLOAD_PRESET);
